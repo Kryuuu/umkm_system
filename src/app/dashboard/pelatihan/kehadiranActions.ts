@@ -7,8 +7,8 @@ import { jwtVerify } from "jose";
 import crypto from "crypto";
 
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://msajpzdstvevpxvgywva.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-key"
 );
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "rahasia-umkm-super-aman-12345");
 
