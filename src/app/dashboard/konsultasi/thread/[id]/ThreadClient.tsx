@@ -1,0 +1,125 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import Link from "next/link";
+import { replyKonsultasi } from "../../actions";
+
+export default function ThreadClient({ parentMessage, thread, user }: { parentMessage: any, thread: any[], user: any }) {
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [thread]);
+
+  const handleReply = async (e: any) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await replyKonsultasi(formData);
+    if (res.success) {
+      e.target.reset();
+    } else {
+      alert("Gagal membalas: " + res.message);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  };
+
+  return (
+    <>
+      <div className="content-header mb-4">
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div>
+            <Link href="/dashboard/konsultasi" className="text-decoration-none text-muted">
+              <i className="bi bi-arrow-left"></i> Kembali ke Daftar Konsultasi
+            </Link>
+            <h4 className="mb-1 mt-2">
+              <i className="bi bi-chat-dots-fill text-primary me-2"></i> {parentMessage.subjek}
+            </h4>
+            <p className="text-muted mb-0">
+              UMKM: <strong>{parentMessage.nama_umkm || "Unknown"}</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat Thread */}
+      <div className="panel">
+        <div
+          className="panel-body"
+          style={{ maxHeight: "500px", overflowY: "auto" }}
+          id="chatContainer"
+          ref={chatContainerRef}
+        >
+          {thread.map((msg) => (
+            <div
+              key={msg.id}
+              className={`d-flex mb-3 ${msg.pengirim_role === user.role ? "justify-content-end" : "justify-content-start"}`}
+            >
+              <div
+                className={`card border-0 shadow-sm ${
+                  msg.pengirim_role === user.role ? "bg-primary text-white" : "bg-light"
+                }`}
+                style={{ maxWidth: "75%", borderRadius: "16px" }}
+              >
+                <div className="card-body py-2 px-3">
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <small className="fw-bold me-2">
+                      {msg.pengirim_role === "umkm" && (
+                        <>
+                          <i className="bi bi-shop"></i> {msg.nama_umkm || "UMKM"}
+                        </>
+                      )}
+                      {msg.pengirim_role === "fasilitator" && (
+                        <>
+                          <i className="bi bi-person-badge"></i> Fasilitator
+                        </>
+                      )}
+                      {msg.pengirim_role === "admin" && (
+                        <>
+                          <i className="bi bi-shield-check"></i> Admin
+                        </>
+                      )}
+                    </small>
+                    <small
+                      className={msg.pengirim_role === user.role ? "text-white-50" : "text-muted"}
+                      style={{ fontSize: "0.75rem" }}
+                    >
+                      {formatDate(msg.created_at)}
+                    </small>
+                  </div>
+                  <p className="mb-0" style={{ whiteSpace: "pre-line" }}>{msg.pesan}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Form Balas */}
+      <div className="panel mt-3">
+        <div className="panel-body">
+          <form onSubmit={handleReply}>
+            <input type="hidden" name="parent_id" value={parentMessage.id} />
+            <div className="d-flex gap-2">
+              <textarea
+                name="pesan"
+                className="form-control"
+                rows={2}
+                required
+                placeholder="Tulis balasan..."
+              ></textarea>
+              <button type="submit" className="btn btn-primary align-self-end rounded-pill px-4">
+                <i className="bi bi-send-fill"></i> Kirim
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+}
