@@ -224,4 +224,21 @@ export async function getKehadiranStatsAction(pelatihanId: number) {
   }
 }
 
+export async function getKehadiranListAction(pelatihanId: number) {
+  try {
+    await checkAuth();
+    
+    const { data: presence, error } = await supabaseAdmin
+      .from("kehadiran_pelatihan")
+      .select("*")
+      .eq("pelatihan_id", pelatihanId);
+      
+    if (error) throw error;
+    
+    return { success: true, presence: presence || [] };
+  } catch (err: any) {
+    return { success: false, message: err.message, presence: [] };
+  }
+}
+
 

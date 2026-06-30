@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { saveKehadiranAction } from "../../kehadiranActions";
+import { saveKehadiranAction, getKehadiranListAction } from "../../kehadiranActions";
 
 export default function KehadiranClient({
   pelatihan,
@@ -23,32 +23,40 @@ export default function KehadiranClient({
     return initial;
   });
 
-  // Poll in the background to automatically fetch latest attendance records
+  // Poll in the background to fetch latest attendance records from database
   useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 3000);
+    let active = true;
+
+    const poll = async () => {
+      const res = await getKehadiranListAction(pelatihan.id);
+      if (!active) return;
+      
+      if (res.success && res.presence) {
+        setKehadiranState((prev) => {
+          const updated = { ...prev };
+          let changed = false;
+          res.presence.forEach((p: any) => {
+            // If the server has a status for this student and local state has no status yet
+            if (p.status_hadir && !prev[p.umkm_id]) {
+              updated[p.umkm_id] = p.status_hadir;
+              changed = true;
+            }
+          });
+          return changed ? updated : prev;
+        });
+      }
+    };
+
+    // Initial poll
+    poll();
+
+    const interval = setInterval(poll, 3000);
 
     return () => {
+      active = false;
       clearInterval(interval);
     };
-  }, [router]);
-
-  // Sync server presence data with client form state
-  useEffect(() => {
-    setKehadiranState((prev) => {
-      const updated = { ...prev };
-      let changed = false;
-      kehadiranList.forEach((k) => {
-        // If a record is marked as present on the server (via QR scan) and local state has no status yet
-        if (k.status_hadir && !prev[k.umkm_id]) {
-          updated[k.umkm_id] = k.status_hadir;
-          changed = true;
-        }
-      });
-      return changed ? updated : prev;
-    });
-  }, [kehadiranList]);
+  }, [pelatihan.id]);
 
   const handleStatusChange = (umkmId: number, status: string) => {
     setKehadiranState((prev) => ({
