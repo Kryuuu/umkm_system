@@ -120,7 +120,10 @@ export async function verifyQrTokenAndRecordPresence(qrToken: string) {
       .maybeSingle();
       
     if (error || !pelatihan) {
-      return { success: false, message: "QR Code tidak valid atau sudah digunakan oleh orang lain." };
+      return { 
+        success: false, 
+        message: "QR Code tidak valid, kedaluwarsa, atau sudah pernah digunakan oleh orang lain. Pastikan Anda melakukan scan langsung pada layar proyektor pemateri (bukan hasil screenshot / kiriman foto)!" 
+      };
     }
     
     // 2. Check expiration
@@ -140,7 +143,7 @@ export async function verifyQrTokenAndRecordPresence(qrToken: string) {
       
     if (existing) {
       if (existing.status_hadir === "hadir") {
-        return { success: true, message: "Anda sudah melakukan absensi untuk pelatihan ini.", sudahHadir: true };
+        return { success: true, message: "Anda sudah terdaftar hadir untuk pelatihan ini sebelumnya.", sudahHadir: true };
       }
       await supabaseAdmin
         .from("kehadiran_pelatihan")
@@ -171,4 +174,54 @@ export async function verifyQrTokenAndRecordPresence(qrToken: string) {
     return { success: false, message: err.message };
   }
 }
+
+export async function getKehadiranStatsAction(pelatihanId: number) {
+  try {
+    await checkAuth();
+    
+    const { count: totalUmkm, error: uErr } = await supabaseAdmin
+      .from("umkm")
+      .select("*", { count: "exact", head: true });
+      
+    const { count: totalHadir, error: hErr } = await supabaseAdmin
+      .from("kehadiran_pelatihan")
+      .select("*", { count: "exact", head: true })
+      .eq("pelatihan_id", pelatihanId)
+      .eq("status_hadir", "hadir");
+      
+    // Fetch recent 3 checked-in UMKMs
+    const { data: recentPresence, error: rErr } = await supabaseAdmin
+      .from("kehadiran_pelatihan")
+      .select(`
+        id,
+        created_at,
+        umkm (
+          nama_umkm,
+          nama_pemilik
+        )
+      `)
+      .eq("pelatihan_id", pelatihanId)
+      .eq("status_hadir", "hadir")
+      .order("created_at", { ascending: false })
+      .limit(3);
+      
+    if (uErr) throw uErr;
+    if (hErr) throw hErr;
+    
+    return { 
+      success: true, 
+      totalUmkm: totalUmkm || 0, 
+      totalHadir: totalHadir || 0,
+      recent: (recentPresence || []).map((rp: any) => ({
+        id: rp.id,
+        nama_umkm: rp.umkm?.nama_umkm || "Unknown",
+        nama_pemilik: rp.umkm?.nama_pemilik || "Unknown",
+        created_at: rp.created_at
+      }))
+    };
+  } catch (err: any) {
+    return { success: false, message: err.message, totalUmkm: 0, totalHadir: 0, recent: [] };
+  }
+}
+
 

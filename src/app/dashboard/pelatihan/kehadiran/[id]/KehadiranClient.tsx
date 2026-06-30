@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { saveKehadiranAction, getPelatihanQrTokenAction, generateQrTokenAction } from "../../kehadiranActions";
+import { saveKehadiranAction } from "../../kehadiranActions";
 
 export default function KehadiranClient({
   pelatihan,
@@ -23,65 +23,32 @@ export default function KehadiranClient({
     return initial;
   });
 
-  const [showQrModal, setShowQrModal] = useState(false);
-  const [qrToken, setQrToken] = useState<string | null>(null);
-  const [loadingQr, setLoadingQr] = useState(false);
-
-  const currentTokenRef = useRef<string | null>(null);
-  currentTokenRef.current = qrToken;
-
-  const handleGenerateQr = async () => {
-    setLoadingQr(true);
-    const res = await generateQrTokenAction(pelatihan.id);
-    setLoadingQr(false);
-    if (res.success && res.qrToken) {
-      setQrToken(res.qrToken);
-    } else {
-      console.error("Gagal generate QR Token:", res.message);
-    }
-  };
-
-  // Poll for token changes when modal is active
+  // Poll in the background to automatically fetch latest attendance records
   useEffect(() => {
-    if (!showQrModal) {
-      setQrToken(null);
-      return;
-    }
-
-    // Initial fetch/generate
-    const initQr = async () => {
-      setLoadingQr(true);
-      const res = await getPelatihanQrTokenAction(pelatihan.id);
-      if (res.success && res.qrToken) {
-        // Check if expired
-        const isExpired = res.qrExpiresAt && new Date(res.qrExpiresAt) < new Date();
-        if (isExpired || !res.qrToken) {
-          await handleGenerateQr();
-        } else {
-          setQrToken(res.qrToken);
-          setLoadingQr(false);
-        }
-      } else {
-        await handleGenerateQr();
-      }
-    };
-
-    initQr();
-
-    const interval = setInterval(async () => {
-      const res = await getPelatihanQrTokenAction(pelatihan.id);
-      if (res.success && res.qrToken) {
-        if (res.qrToken !== currentTokenRef.current) {
-          setQrToken(res.qrToken);
-          router.refresh(); // refresh server side list
-        }
-      }
-    }, 2000);
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 3000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [showQrModal]);
+  }, [router]);
+
+  // Sync server presence data with client form state
+  useEffect(() => {
+    setKehadiranState((prev) => {
+      const updated = { ...prev };
+      let changed = false;
+      kehadiranList.forEach((k) => {
+        // If a record is marked as present on the server (via QR scan) and local state has no status yet
+        if (k.status_hadir && !prev[k.umkm_id]) {
+          updated[k.umkm_id] = k.status_hadir;
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+  }, [kehadiranList]);
 
   const handleStatusChange = (umkmId: number, status: string) => {
     setKehadiranState((prev) => ({
@@ -146,14 +113,14 @@ export default function KehadiranClient({
           </p>
         </div>
         <div className="d-flex gap-2">
-          <button 
-            type="button" 
-            onClick={() => setShowQrModal(true)} 
-            className="btn rounded-pill px-4 fs-sm fw-semibold shadow-sm text-white"
+          <Link 
+            href={`/dashboard/pelatihan/kehadiran/${pelatihan.id}/qr`}
+            target="_blank"
+            className="btn rounded-pill px-4 fs-sm fw-semibold shadow-sm text-white d-flex align-items-center justify-content-center"
             style={{ background: 'linear-gradient(135deg, #4f46e5, #9333ea)', border: 'none' }}
           >
             <i className="bi bi-qr-code me-2"></i> QR Code Absensi
-          </button>
+          </Link>
           <Link href="/dashboard/pelatihan" className="btn-outline-custom">
             <i className="bi bi-arrow-left"></i> Kembali
           </Link>
@@ -224,72 +191,6 @@ export default function KehadiranClient({
           </form>
         </div>
       </div>
-
-      {showQrModal && (
-        <div className="modal-backdrop-custom d-flex align-items-center justify-content-center" style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 1050,
-        }}>
-          <div className="panel border-0 shadow-lg rounded-4 p-4 text-center text-white" style={{
-            maxWidth: '450px',
-            width: '90%',
-            background: 'linear-gradient(135deg, #1e1b4b, #311042)',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="fw-bold mb-0 text-white">QR Code Absensi Mandiri</h5>
-              <button 
-                type="button" 
-                className="btn-close btn-close-white" 
-                style={{ filter: 'invert(1)' }}
-                onClick={() => setShowQrModal(false)}
-              ></button>
-            </div>
-            <p className="fs-xs text-white-50 mb-4">
-              Tunjukkan QR Code ini kepada UMKM. QR Code akan otomatis berubah setiap kali discan oleh satu UMKM untuk mencegah pembagian gambar.
-            </p>
-
-            <div className="bg-white p-3 rounded-4 d-inline-block shadow mb-4" style={{ border: '2px solid #a21caf' }}>
-              {loadingQr ? (
-                <div className="d-flex align-items-center justify-content-center" style={{ width: '250px', height: '250px' }}>
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                </div>
-              ) : qrToken ? (
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrToken)}`}
-                  alt="QR Code Absensi"
-                  style={{ width: '250px', height: '250px', display: 'block' }}
-                />
-              ) : (
-                <div className="d-flex align-items-center justify-content-center text-dark" style={{ width: '250px', height: '250px' }}>
-                  Gagal membuat QR Code
-                </div>
-              )}
-            </div>
-
-            <div className="d-flex flex-column gap-2">
-              <button 
-                onClick={handleGenerateQr} 
-                disabled={loadingQr}
-                className="btn btn-outline-light rounded-pill fs-sm fw-semibold"
-              >
-                <i className="bi bi-arrow-clockwise me-1"></i> Regenerasi Manual
-              </button>
-              <span className="text-white-50 fs-xs" style={{ fontSize: '0.75rem' }}>
-                <i className="bi bi-clock-history me-1"></i> Menunggu scan / aktif melakukan polling...
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

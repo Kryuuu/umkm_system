@@ -104,6 +104,19 @@ export default function ScanClient({ user }: { user: any }) {
       const res = await verifyQrTokenAndRecordPresence(token);
 
       if (res.success) {
+        if (res.sudahHadir) {
+          Swal.fire({
+            icon: "info",
+            title: "Sudah Terabsen",
+            text: res.message || "Anda sudah melakukan absensi untuk pelatihan ini.",
+            confirmButtonText: "Kembali ke Pelatihan",
+            confirmButtonColor: "#3b82f6",
+          }).then(() => {
+            router.push("/dashboard/pelatihan");
+          });
+          return;
+        }
+
         Swal.fire({
           icon: "success",
           title: "Absensi Berhasil!",
