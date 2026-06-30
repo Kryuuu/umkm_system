@@ -1,19 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createKonsultasi, deleteKonsultasi } from "./actions";
 
-export default function KonsultasiClient({ threads, umkmList, user }: { threads: any[], umkmList: any[], user: any }) {
+export default function KonsultasiClient({ 
+  threads, 
+  conversations = [], 
+  umkmList, 
+  user, 
+  isConversationsList = false 
+}: { 
+  threads: any[], 
+  conversations?: any[], 
+  umkmList: any[], 
+  user: any, 
+  isConversationsList?: boolean 
+}) {
+  const [alertInfo, setAlertInfo] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (alertInfo) {
+      const timer = setTimeout(() => setAlertInfo(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [alertInfo]);
 
   const confirmDelete = async (e: any, id: number) => {
     e.preventDefault();
     if (typeof window !== "undefined" && window.confirm('Yakin ingin menghapus riwayat chat ini? Semua pesan dalam thread ini akan terhapus.')) {
         const res = await deleteKonsultasi(id);
         if (res.success) {
-            alert("Riwayat chat berhasil dihapus.");
+            setAlertInfo({ type: 'success', message: "Riwayat chat berhasil dihapus." });
         } else {
-            alert("Gagal menghapus: " + res.message);
+            setAlertInfo({ type: 'danger', message: "Gagal menghapus: " + res.message });
         }
     }
   };
@@ -23,7 +43,7 @@ export default function KonsultasiClient({ threads, umkmList, user }: { threads:
     const formData = new FormData(e.target);
     const res = await createKonsultasi(formData);
     if (res.success) {
-        alert("Konsultasi baru berhasil dikirim!");
+        setAlertInfo({ type: 'success', message: "Konsultasi baru berhasil dikirim!" });
         e.target.reset();
         // Hide modal
         if (typeof window !== "undefined") {
@@ -41,7 +61,7 @@ export default function KonsultasiClient({ threads, umkmList, user }: { threads:
           }
         }
     } else {
-        alert("Gagal mengirim: " + res.message);
+        setAlertInfo({ type: 'danger', message: "Gagal mengirim: " + res.message });
     }
   };
 
@@ -59,7 +79,7 @@ export default function KonsultasiClient({ threads, umkmList, user }: { threads:
                   <p className="text-muted mb-0">Tanya jawab antara UMKM dan Mentor/Fasilitator</p>
               </div>
               <div className="d-flex gap-2">
-                  {user.role !== 'umkm' && (
+                  {!isConversationsList && user.role !== 'umkm' && (
                   <Link href="/dashboard/konsultasi" className="btn btn-outline-secondary rounded-pill">
                       <i className="bi bi-arrow-left"></i> Kembali
                   </Link>
@@ -71,42 +91,95 @@ export default function KonsultasiClient({ threads, umkmList, user }: { threads:
           </div>
       </div>
 
-      {/* Daftar Thread Konsultasi */}
+      {alertInfo && (
+          <div className={`alert alert-${alertInfo.type} alert-dismissible fade show rounded-4 mb-4`} role="alert">
+              <i className={`bi ${alertInfo.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
+              {alertInfo.message}
+              <button type="button" className="btn-close" onClick={() => setAlertInfo(null)} aria-label="Close"></button>
+          </div>
+      )}
+
+      {/* Daftar Thread/Conversation Konsultasi */}
       <div className="panel">
           <div className="panel-body p-0">
-              {threads.length === 0 ? (
-                  <div className="text-center py-5">
-                      <i className="bi bi-chat-square-text fs-1 text-muted"></i>
-                      <p className="text-muted mt-2">Belum ada konsultasi. Klik tombol di atas untuk memulai!</p>
-                  </div>
+              {isConversationsList ? (
+                  conversations.length === 0 ? (
+                      <div className="text-center py-5">
+                          <i className="bi bi-chat-square-text fs-1 text-muted"></i>
+                          <p className="text-muted mt-2">Belum ada percakapan UMKM. Klik tombol di atas untuk memulai konsultasi!</p>
+                      </div>
+                  ) : (
+                      <div className="list-group list-group-flush">
+                          {conversations.map((conv) => (
+                              <Link 
+                                  key={conv.umkm_id}
+                                  href={`/dashboard/konsultasi?umkm_id=${conv.umkm_id}`}
+                                  className="list-group-item list-group-item-action p-3"
+                              >
+                                  <div className="d-flex w-100 justify-content-between align-items-start gap-3">
+                                      <div className="flex-grow-1">
+                                          <div className="d-flex align-items-center flex-wrap gap-2 mb-2">
+                                              <span className="badge bg-info rounded-pill"><i className="bi bi-shop"></i> UMKM</span>
+                                              <strong className="fs-6">{conv.nama_umkm}</strong>
+                                              <span className="text-muted small">({conv.nama_pemilik})</span>
+                                              {conv.domisili && (
+                                                  <span className="badge bg-light text-dark border ms-1">{conv.domisili}</span>
+                                              )}
+                                          </div>
+                                          <h6 className="mb-1 fw-bold text-dark">{conv.subjek}</h6>
+                                          <p className="mb-0 text-muted small">{conv.latest_message?.substring(0, 120)}...</p>
+                                      </div>
+                                      <div className="text-end flex-shrink-0 d-flex flex-column align-items-end justify-content-between h-100" style={{minWidth: '150px'}}>
+                                          <div className="mb-2">
+                                              <small className="text-muted">{formatDate(conv.latest_timestamp)}</small>
+                                              {conv.unread_count > 0 && (
+                                                  <><br /><span className="badge bg-danger rounded-pill mt-1">{conv.unread_count} Pesan Baru</span></>
+                                              )}
+                                          </div>
+                                          <span className="btn btn-sm btn-outline-primary rounded-pill px-3 mt-1">
+                                              Buka Chat <i className="bi bi-chevron-right ms-1"></i>
+                                          </span>
+                                      </div>
+                                  </div>
+                              </Link>
+                          ))}
+                      </div>
+                  )
               ) : (
-                  <div className="list-group list-group-flush">
-                      {threads.map((thread) => (
-                          <div key={thread.id} className={`list-group-item p-3 ${!thread.is_read && thread.pengirim_role !== user.role ? 'bg-primary bg-opacity-10' : ''}`}>
-                              <div className="d-flex w-100 justify-content-between align-items-start gap-3">
-                                  <Link href={`/dashboard/konsultasi/thread/${thread.id}`} className="flex-grow-1 text-decoration-none text-dark d-block">
-                                      <div className="d-flex align-items-center gap-2 mb-1">
-                                          {thread.pengirim_role === 'umkm' && <span className="badge bg-info rounded-pill"><i className="bi bi-shop"></i> UMKM</span>}
-                                          {thread.pengirim_role === 'fasilitator' && <span className="badge bg-warning text-dark rounded-pill"><i className="bi bi-person-badge"></i> Fasilitator</span>}
-                                          {thread.pengirim_role === 'admin' && <span className="badge bg-danger rounded-pill"><i className="bi bi-shield-check"></i> Admin</span>}
-                                          <strong>{thread.nama_umkm || 'Unknown'}</strong>
+                  threads.length === 0 ? (
+                      <div className="text-center py-5">
+                          <i className="bi bi-chat-square-text fs-1 text-muted"></i>
+                          <p className="text-muted mt-2">Belum ada konsultasi. Klik tombol di atas untuk memulai!</p>
+                      </div>
+                  ) : (
+                      <div className="list-group list-group-flush">
+                          {threads.map((thread) => (
+                              <div key={thread.id} className={`list-group-item p-3 ${!thread.is_read && thread.pengirim_role !== user.role ? 'bg-primary bg-opacity-10' : ''}`}>
+                                  <div className="d-flex w-100 justify-content-between align-items-start gap-3">
+                                      <Link href={`/dashboard/konsultasi/thread/${thread.id}`} className="flex-grow-1 text-decoration-none text-dark d-block">
+                                          <div className="d-flex align-items-center gap-2 mb-1">
+                                              {thread.pengirim_role === 'umkm' && <span className="badge bg-info rounded-pill"><i className="bi bi-shop"></i> UMKM</span>}
+                                              {thread.pengirim_role === 'fasilitator' && <span className="badge bg-warning text-dark rounded-pill"><i className="bi bi-person-badge"></i> Fasilitator</span>}
+                                              {thread.pengirim_role === 'admin' && <span className="badge bg-danger rounded-pill"><i className="bi bi-shield-check"></i> Admin</span>}
+                                              <strong>{thread.nama_umkm || 'Unknown'}</strong>
+                                          </div>
+                                          <h6 className="mb-1 fw-bold">{thread.subjek}</h6>
+                                          <p className="mb-0 text-muted small">{thread.pesan?.substring(0, 120)}...</p>
+                                      </Link>
+                                      <div className="text-end flex-shrink-0 d-flex flex-column align-items-end justify-content-between h-100" style={{minWidth: '120px'}}>
+                                          <div className="mb-2">
+                                              <small className="text-muted">{formatDate(thread.created_at)}</small>
+                                              {!thread.is_read && thread.pengirim_role !== user.role && <><br /><span className="badge bg-primary rounded-pill mt-1">Baru</span></>}
+                                          </div>
+                                          <button onClick={(e) => confirmDelete(e, thread.id)} className="btn btn-sm btn-outline-danger" title="Hapus Riwayat Chat">
+                                              <i className="bi bi-trash"></i> Hapus
+                                          </button>
                                       </div>
-                                      <h6 className="mb-1 fw-bold">{thread.subjek}</h6>
-                                      <p className="mb-0 text-muted small">{thread.pesan?.substring(0, 120)}...</p>
-                                  </Link>
-                                  <div className="text-end flex-shrink-0 d-flex flex-column align-items-end justify-content-between h-100" style={{minWidth: '120px'}}>
-                                      <div className="mb-2">
-                                          <small className="text-muted">{formatDate(thread.created_at)}</small>
-                                          {!thread.is_read && thread.pengirim_role !== user.role && <><br /><span className="badge bg-primary rounded-pill mt-1">Baru</span></>}
-                                      </div>
-                                      <button onClick={(e) => confirmDelete(e, thread.id)} className="btn btn-sm btn-outline-danger" title="Hapus Riwayat Chat">
-                                          <i className="bi bi-trash"></i> Hapus
-                                      </button>
                                   </div>
                               </div>
-                          </div>
-                      ))}
-                  </div>
+                          ))}
+                      </div>
+                  )
               )}
           </div>
       </div>

@@ -19,10 +19,6 @@ export default function RootLayout({
   return (
     <html lang="id" data-theme="light" suppressHydrationWarning>
       <head>
-        {/* Bootstrap 5 CSS */}
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-        {/* Bootstrap Icons */}
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
         {/* DataTables CSS */}
         <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
         <script dangerouslySetInnerHTML={{

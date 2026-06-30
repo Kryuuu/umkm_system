@@ -3,6 +3,7 @@ import { jwtVerify } from "jose";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import UMKMProfileClient from "./UMKMProfileClient";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,13 +24,36 @@ export default async function DataUMKMPage() {
     redirect("/");
   }
 
-  // If role is umkm, we can filter by their id, but let's just fetch all for now or filter.
-  const query = supabaseAdmin.from('umkm').select('*').order('id', { ascending: true });
+  // If role is umkm, fetch their detailed profile and parameters
   if (user.role === 'umkm') {
-    query.eq('id', user.umkm_id || user.id);
+    const activeUmkmId = user.umkm_id || user.id;
+    const [umkmRes, prodRes, monRes] = await Promise.all([
+      supabaseAdmin.from('umkm').select('*').eq('id', activeUmkmId).single(),
+      supabaseAdmin.from('produk').select('*', { count: 'exact', head: true }).eq('umkm_id', activeUmkmId),
+      supabaseAdmin.from('monitoring').select('*').eq('umkm_id', activeUmkmId).order('tahun', { ascending: false }).order('bulan', { ascending: false }).limit(1)
+    ]);
+
+    const umkm = umkmRes.data;
+    const produkCount = prodRes.count || 0;
+    const latestMonitoring = monRes.data && monRes.data.length > 0 ? monRes.data[0] : null;
+
+    if (!umkm) {
+      return (
+        <div className="alert alert-danger">Data UMKM Anda tidak ditemukan di database.</div>
+      );
+    }
+
+    return (
+      <UMKMProfileClient 
+        umkm={umkm} 
+        produkCount={produkCount} 
+        latestMonitoring={latestMonitoring} 
+      />
+    );
   }
-  
-  const { data: umkmList } = await query;
+
+  // Admin & Fasilitator list view
+  const { data: umkmList } = await supabaseAdmin.from('umkm').select('*').order('id', { ascending: true });
 
   return (
     <>
@@ -56,7 +80,7 @@ export default async function DataUMKMPage() {
                               <th>NIB</th>
                               <th>Status</th>
                               <th>Skor</th>
-                              {user.role !== 'umkm' && <th>Aksi</th>}
+                              <th>Aksi</th>
                           </tr>
                       </thead>
                       <tbody>
@@ -80,7 +104,6 @@ export default async function DataUMKMPage() {
                                               </strong>
                                           </Link>
                                       </td>
-                                      {user.role !== 'umkm' && (
                                       <td>
                                           <div className="d-flex gap-2 justify-content-center">
                                               <Link href={`/dashboard/umkm/analisis/${u.id}`} className="btn-info-custom btn-table-action" title="Analisis Skor">
@@ -94,7 +117,6 @@ export default async function DataUMKMPage() {
                                               </button>
                                           </div>
                                       </td>
-                                      )}
                                   </tr>
                               );
                           })}

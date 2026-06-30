@@ -222,9 +222,16 @@ export default function ScanClient({ user }: { user: any }) {
           <h5 className="fw-bold mb-1">Absensi Kehadiran Pelatihan</h5>
           <p className="text-muted fs-sm mb-0">Scan QR Code pelatihan untuk mencatat kehadiran Anda</p>
         </div>
-        <Link href="/dashboard/pelatihan" className="btn-outline-custom">
+        <button
+          onClick={async () => {
+            await stopScanner();
+            router.push("/dashboard/pelatihan");
+          }}
+          className="btn-outline-custom border-0 bg-transparent"
+          style={{ cursor: "pointer" }}
+        >
           <i className="bi bi-arrow-left"></i> Kembali
-        </Link>
+        </button>
       </div>
 
       <div className="row justify-content-center">

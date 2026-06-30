@@ -244,7 +244,7 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
       <div className="modal fade" id="editUmkmModal" tabIndex={-1}>
           <div className="modal-dialog modal-xl">
               <div className="modal-content border-0 rounded-4 overflow-hidden">
-                  <div className="modal-header bg-warning text-dark p-4">
+                  <div className="modal-header bg-warning text-black p-4">
                       <h5 className="modal-title m-0 fw-bold"><i className="bi bi-pencil-square me-2"></i>Edit Data UMKM</h5>
                       <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
                   </div>
@@ -332,7 +332,7 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
                       </div>
                       <div className="modal-footer bg-white border-top">
                           <button type="button" className="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                          <button type="submit" className="btn-warning-custom px-4 fw-bold text-dark"><i className="bi bi-check-lg"></i> Update Data</button>
+                          <button type="submit" className="btn-warning-custom px-4 fw-bold text-black"><i className="bi bi-check-lg"></i> Update Data</button>
                       </div>
                   </form>
               </div>

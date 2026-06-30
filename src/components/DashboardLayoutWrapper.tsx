@@ -185,7 +185,7 @@ export default function DashboardLayoutWrapper({
             <button className={`btn btn-sm rounded-circle me-3 ${theme === 'dark' ? 'btn-dark' : 'btn-light'}`} onClick={toggleTheme} title="Ganti Tema">
               <i className={`bi ${theme === 'dark' ? 'bi-sun-fill' : 'bi-moon-stars'}`}></i>
             </button>
-            <span className="fs-sm text-muted">
+            <span className="fs-sm text-muted d-none d-sm-inline">
               <i className="bi bi-calendar3 me-2"></i>
               {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
             </span>

@@ -28,6 +28,7 @@ export async function createUmkm(formData: FormData) {
     
     let halalFileName = await saveFile(formData.get('sertifikat_halal') as File);
     let pirtFileName = await saveFile(formData.get('sertifikat_pirt') as File);
+    let nibFileName = await saveFile(formData.get('dokumen_nib') as File);
 
     const { error } = await supabaseAdmin.from('umkm').insert({
       username: rawData.username,
@@ -43,7 +44,7 @@ export async function createUmkm(formData: FormData) {
       halal_berlaku: rawData.halal_berlaku || null,
       sertifikat_pirt: pirtFileName,
       pirt_berlaku: rawData.pirt_berlaku || null,
-      dokumen_nib: rawData.dokumen_nib,
+      dokumen_nib: nibFileName,
       nib_berlaku: rawData.nib_berlaku || null,
       alamat: rawData.alamat,
       domisili: rawData.domisili,
@@ -68,18 +69,17 @@ export async function updateUmkm(formData: FormData) {
 
     let halalFileName = await saveFile(formData.get('sertifikat_halal') as File);
     let pirtFileName = await saveFile(formData.get('sertifikat_pirt') as File);
+    let nibFileName = await saveFile(formData.get('dokumen_nib') as File);
 
     const updates: any = {
       nama_umkm: rawData.nama_umkm,
       nama_pemilik: rawData.nama_pemilik,
       no_telpon: rawData.no_telpon,
       email: rawData.email,
-      fasilitator_id: rawData.fasilitator_id ? parseInt(rawData.fasilitator_id as string) : null,
       nik: rawData.nik,
       nib: rawData.nib,
       halal_berlaku: rawData.halal_berlaku || null,
       pirt_berlaku: rawData.pirt_berlaku || null,
-      dokumen_nib: rawData.dokumen_nib,
       nib_berlaku: rawData.nib_berlaku || null,
       alamat: rawData.alamat,
       domisili: rawData.domisili,
@@ -87,8 +87,13 @@ export async function updateUmkm(formData: FormData) {
       status_usaha: rawData.status_usaha || 'Pemula'
     };
 
+    if (rawData.fasilitator_id) {
+      updates.fasilitator_id = parseInt(rawData.fasilitator_id as string);
+    }
+
     if (halalFileName) updates.sertifikat_halal = halalFileName;
     if (pirtFileName) updates.sertifikat_pirt = pirtFileName;
+    if (nibFileName) updates.dokumen_nib = nibFileName;
 
     if (rawData.password && (rawData.password as string).trim() !== "") {
       updates.password = await bcrypt.hash(rawData.password as string, 10);

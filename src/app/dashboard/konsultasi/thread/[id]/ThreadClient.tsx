@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { replyKonsultasi } from "../../actions";
 
 export default function ThreadClient({ parentMessage, thread, user }: { parentMessage: any, thread: any[], user: any }) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [alertInfo, setAlertInfo] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -13,14 +14,22 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
     }
   }, [thread]);
 
+  useEffect(() => {
+    if (alertInfo) {
+      const timer = setTimeout(() => setAlertInfo(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [alertInfo]);
+
   const handleReply = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const res = await replyKonsultasi(formData);
     if (res.success) {
+      setAlertInfo({ type: 'success', message: "Balasan berhasil dikirim!" });
       e.target.reset();
     } else {
-      alert("Gagal membalas: " + res.message);
+      setAlertInfo({ type: 'danger', message: "Gagal membalas: " + res.message });
     }
   };
 
@@ -46,6 +55,14 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
           </div>
         </div>
       </div>
+
+      {alertInfo && (
+        <div className={`alert alert-${alertInfo.type} alert-dismissible fade show rounded-4 mb-4`} role="alert">
+          <i className={`bi ${alertInfo.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
+          {alertInfo.message}
+          <button type="button" className="btn-close" onClick={() => setAlertInfo(null)} aria-label="Close"></button>
+        </div>
+      )}
 
       {/* Chat Thread */}
       <div className="panel">

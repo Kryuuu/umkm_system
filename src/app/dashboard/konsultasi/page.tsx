@@ -36,14 +36,58 @@ export default async function KonsultasiPage({
   }
   const { data: umkmList } = await umkmListQuery;
 
-  // For Admin & Facilitator: if no umkm_id is selected, show UMKM Selection Screen
-  if (user.role !== "umkm" && !umkm_id) {
+  // Determine if we should show the list of all UMKM conversations (for admin/fasil when no umkm_id is selected)
+  const isConversationsList = user.role !== "umkm" && !umkm_id;
+
+  if (isConversationsList) {
+    // Query all messages (both parents and replies) to group by UMKM
+    let { data: allMessages } = await supabaseAdmin
+      .from("konsultasi")
+      .select(`*, umkm:umkm_id(id, nama_umkm, nama_pemilik, domisili)`)
+      .order("created_at", { ascending: false });
+
+    // Filter by facilitator domisili if needed
+    if (user.role === "fasilitator" && allMessages) {
+      const domisiliLower = (user.domisili || "").toLowerCase();
+      allMessages = allMessages.filter(msg => 
+        msg.umkm?.domisili && msg.umkm.domisili.toLowerCase().includes(domisiliLower)
+      );
+    }
+
+    const conversationsMap = new Map();
+    for (const msg of allMessages || []) {
+      const uId = msg.umkm_id;
+      if (!conversationsMap.has(uId)) {
+        conversationsMap.set(uId, {
+          id: msg.id,
+          umkm_id: uId,
+          nama_umkm: msg.umkm?.nama_umkm || "Unknown",
+          nama_pemilik: msg.umkm?.nama_pemilik || "",
+          domisili: msg.umkm?.domisili || "",
+          latest_message: msg.pesan,
+          latest_timestamp: msg.created_at,
+          latest_pengirim_role: msg.pengirim_role,
+          subjek: msg.subjek,
+          thread_id: msg.parent_id || msg.id,
+          unread_count: 0,
+        });
+      }
+      // Count unread messages sent by someone else
+      if (!msg.is_read && msg.pengirim_role !== user.role) {
+        conversationsMap.get(uId).unread_count += 1;
+      }
+    }
+
+    const conversations = Array.from(conversationsMap.values());
+    conversations.sort((a, b) => new Date(b.latest_timestamp).getTime() - new Date(a.latest_timestamp).getTime());
+
     return (
-      <SelectUmkmClient
-        umkmList={umkmList || []}
-        targetPage="konsultasi"
-        targetLabel="konsultasi"
-        user={user}
+      <KonsultasiClient 
+        threads={[]} 
+        conversations={conversations} 
+        umkmList={umkmList || []} 
+        user={user} 
+        isConversationsList={true}
       />
     );
   }
@@ -66,5 +110,13 @@ export default async function KonsultasiPage({
     nama_umkm: t.umkm?.nama_umkm
   })) || [];
 
-  return <KonsultasiClient threads={threads} umkmList={umkmList || []} user={user} />;
+  return (
+    <KonsultasiClient 
+      threads={threads} 
+      conversations={[]} 
+      umkmList={umkmList || []} 
+      user={user} 
+      isConversationsList={false}
+    />
+  );
 }
