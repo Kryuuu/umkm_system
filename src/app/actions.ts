@@ -37,7 +37,7 @@ export async function loginAction(formData: FormData) {
         username: fasilData.username,
         name: fasilData.nickname
       });
-      redirect("/dashboard");
+      return { success: true };
     }
   }
 
@@ -59,7 +59,7 @@ export async function loginAction(formData: FormData) {
         username: umkmData.username,
         name: umkmData.nama_umkm
       });
-      redirect("/dashboard");
+      return { success: true };
     }
   }
 

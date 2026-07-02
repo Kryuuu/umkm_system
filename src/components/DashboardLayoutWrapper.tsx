@@ -15,11 +15,45 @@ export default function DashboardLayoutWrapper({
   const [sidebarActive, setSidebarActive] = useState(false);
   const [theme, setTheme] = useState("light");
   const [laporanExpanded, setLaporanExpanded] = useState(false);
+  const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
+  const [logoutStep, setLogoutStep] = useState(0);
+
+  const logoutSteps = [
+    "Menyimpan perubahan sesi...",
+    "Menghapus token enkripsi...",
+    "Menutup koneksi aman...",
+    "Kembali ke gerbang login..."
+  ];
 
   useEffect(() => {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     setTheme(currentTheme);
   }, []);
+
+  useEffect(() => {
+    if (showLogoutOverlay) {
+      const interval = setInterval(() => {
+        setLogoutStep((prev) => {
+          if (prev < logoutSteps.length - 1) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 600);
+      return () => clearInterval(interval);
+    } else {
+      setLogoutStep(0);
+    }
+  }, [showLogoutOverlay]);
+
+  const handleLogout = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setShowLogoutOverlay(true);
+    setTimeout(() => {
+      form.submit();
+    }, 2500);
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -35,6 +69,123 @@ export default function DashboardLayoutWrapper({
 
   return (
     <>
+      {showLogoutOverlay && (
+        <div className="logout-overlay">
+          <style>{`
+            .logout-overlay {
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100vw;
+              height: 100vh;
+              background: linear-gradient(135deg, #0b0f19 0%, #0f172a 50%, #1e1b4b 100%);
+              z-index: 999999;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              font-family: 'Inter', sans-serif;
+              color: white;
+            }
+
+            .logout-logo-container {
+              position: relative;
+              margin-bottom: 2rem;
+            }
+
+            .logout-logo-glow {
+              width: 90px;
+              height: 90px;
+              background: linear-gradient(135deg, #f43f5e, #e11d48);
+              border-radius: 24px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 2.2rem;
+              color: white;
+              box-shadow: 0 0 40px rgba(244, 63, 94, 0.4);
+              animation: logoPulseRose 2s infinite alternate ease-in-out;
+            }
+
+            @keyframes logoPulseRose {
+              0% { transform: scale(1); box-shadow: 0 0 30px rgba(244, 63, 94, 0.4); }
+              100% { transform: scale(1.08); box-shadow: 0 0 60px rgba(225, 29, 72, 0.6); }
+            }
+
+            .logout-spinner-ring {
+              position: absolute;
+              top: -12px;
+              left: -12px;
+              right: -12px;
+              bottom: -12px;
+              border: 3px solid transparent;
+              border-top-color: #f43f5e;
+              border-bottom-color: #fb7185;
+              border-radius: 50%;
+              animation: spinnerSpin 1.8s infinite linear;
+            }
+
+            @keyframes spinnerSpin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+
+            .logout-bar-container {
+              width: 320px;
+              height: 6px;
+              background: rgba(255, 255, 255, 0.08);
+              border-radius: 99px;
+              overflow: hidden;
+              margin-bottom: 1.5rem;
+              border: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .logout-bar-fill {
+              height: 100%;
+              background: linear-gradient(90deg, #f43f5e, #fb7185, #fda4af);
+              border-radius: 99px;
+              transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .logout-text {
+              font-size: 1.05rem;
+              font-weight: 600;
+              color: rgba(255, 255, 255, 0.9);
+              height: 24px;
+              margin-bottom: 0.5rem;
+              letter-spacing: 0.2px;
+              text-align: center;
+            }
+
+            .logout-subtext {
+              font-size: 0.725rem;
+              color: rgba(255, 255, 255, 0.35);
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 2px;
+            }
+          `}</style>
+          
+          <div className="logout-logo-container">
+            <div className="logout-spinner-ring"></div>
+            <div className="logout-logo-glow">
+              <i className="bi bi-box-arrow-left"></i>
+            </div>
+          </div>
+
+          <div className="logout-text">
+            {logoutSteps[logoutStep]}
+          </div>
+
+          <div className="logout-bar-container">
+            <div className="logout-bar-fill" style={{ width: `${(logoutStep + 1) * 25}%` }}></div>
+          </div>
+
+          <div className="logout-subtext">
+            Mengakhiri Sesi Anda
+          </div>
+        </div>
+      )}
       <aside className={`sidebar ${sidebarActive ? 'active' : ''}`} id="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
@@ -164,7 +315,7 @@ export default function DashboardLayoutWrapper({
               <span>Setelan Profil</span>
             </Link>
           )}
-          <form action="/api/logout" method="POST">
+          <form action="/api/logout" method="POST" onSubmit={handleLogout}>
             <button type="submit" className="nav-item mt-2 w-100 text-start bg-transparent border-0" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <i className="bi bi-box-arrow-left"></i>
               <span>Logout</span>
