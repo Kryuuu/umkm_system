@@ -29,6 +29,17 @@ export default async function KonsultasiPage({
     redirect("/");
   }
 
+  // Normalize role to prevent stale session cookies
+  let normalizedRole = user.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  user.role = normalizedRole;
+
   // Fetch list of UMKM for selector
   let umkmListQuery = supabaseAdmin.from("umkm").select("id, nama_umkm, nama_pemilik");
   if (user.role === "Staff") {
