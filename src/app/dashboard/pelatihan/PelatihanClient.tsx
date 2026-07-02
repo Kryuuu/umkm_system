@@ -165,6 +165,9 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
                           <button class="btn-success-custom btn-kehadiran" data-id="${p.id}" style="padding:6px 10px; font-size:0.75rem" title="Kehadiran">
                               <i class="bi bi-clipboard-check"></i>
                           </button>
+                          <button class="btn-qr-code" data-id="${p.id}" style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; border-radius: 4px; padding: 6px 10px; font-size: 0.75rem" title="QR Code Live Presenter">
+                              <i class="bi bi-qr-code"></i>
+                          </button>
                           <button class="btn-warning-custom btn-edit" data-index="${idx}" title="Edit"><i class="bi bi-pencil"></i></button>
                           <button class="btn-danger-custom btn-delete" data-id="${p.id}" title="Hapus"><i class="bi bi-trash"></i></button>
                       </div>
@@ -173,7 +176,7 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
               </tr>
               `).join('')}
           </tbody>
-      </table>
+       </table>
     `;
 
     if (tableContainerRef.current) {
@@ -204,6 +207,11 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
       table.on('click', '.btn-kehadiran', function(this: any) {
         const id = window.$(this).data('id');
         router.push(`/dashboard/pelatihan/kehadiran/${id}`);
+      });
+
+      table.on('click', '.btn-qr-code', function(this: any) {
+        const id = window.$(this).data('id');
+        window.open(`/dashboard/pelatihan/kehadiran/${id}/qr`, '_blank');
       });
 
       table.on('click', '.btn-edit', function(this: any) {
