@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createProduk, updateProduk, deleteProduk } from "./actions";
@@ -8,6 +8,7 @@ import { createProduk, updateProduk, deleteProduk } from "./actions";
 export default function ProdukClient({ produkList, umkmList, user, activeUmkmId }: { produkList: any[], umkmList: any[], user: any, activeUmkmId?: number }) {
   const router = useRouter();
   const [editData, setEditData] = useState<any>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const openEdit = (p: any) => {
     setEditData(p);
@@ -95,6 +96,107 @@ export default function ProdukClient({ produkList, umkmList, user, activeUmkmId 
     }
   };
 
+  // Re-initialize jQuery DataTable on produkList changes using leaf node DOM
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.$) {
+      const existingTable = window.$('#produk-table');
+      if (existingTable.length && window.$.fn.DataTable && window.$.fn.DataTable.isDataTable(existingTable[0])) {
+        existingTable.DataTable().destroy();
+      }
+    }
+
+    if (tableContainerRef.current) {
+      tableContainerRef.current.innerHTML = '';
+    }
+
+    const tableHtml = `
+      <table id="produk-table" class="table-custom" style="width:100%">
+          <thead>
+              <tr>
+                  <th>No</th>
+                  <th>UMKM</th>
+                  <th>Nama Produk</th>
+                  <th>Kategori</th>
+                  <th>Harga</th>
+                  <th>Deskripsi</th>
+                  <th>Aksi</th>
+              </tr>
+          </thead>
+          <tbody>
+              ${produkList.map((p, idx) => `
+              <tr data-id="${p.id}">
+                  <td>${idx + 1}</td>
+                  <td>${p.nama_umkm || '-'}</td>
+                  <td><strong>${p.nama_produk}</strong></td>
+                  <td><span class="badge-status badge-naik-kelas">${p.kategori_produk || '-'}</span></td>
+                  <td>Rp ${Number(p.harga_produk).toLocaleString('id-ID')}</td>
+                  <td class="text-muted fs-sm">${(p.deskripsi_produk || '').substring(0, 50)}</td>
+                  <td>
+                      <div class="d-flex gap-1">
+                          <button class="btn-warning-custom btn-edit" data-id="${p.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+                          <button class="btn-danger-custom btn-delete" data-id="${p.id}" title="Hapus"><i class="bi bi-trash"></i></button>
+                      </div>
+                  </td>
+              </tr>
+              `).join('')}
+          </tbody>
+      </table>
+    `;
+
+    if (tableContainerRef.current) {
+      tableContainerRef.current.innerHTML = tableHtml;
+    }
+
+    if (typeof window !== "undefined" && window.$ && window.$.fn.DataTable) {
+      const table = window.$('#produk-table');
+      table.DataTable({
+        language: {
+            search: "Cari:",
+            lengthMenu: "Tampilkan _MENU_ data",
+            info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
+            paginate: {
+                first: "Pertama",
+                last: "Terakhir",
+                next: "›",
+                previous: "‹"
+            },
+            emptyTable: "Tidak ada data tersedia",
+            zeroRecords: "Data tidak ditemukan"
+        },
+        responsive: true,
+        pageLength: 10,
+        destroy: true
+      });
+
+      // Handle Edit Click
+      table.on('click', '.btn-edit', function(this: any) {
+        const id = window.$(this).data('id');
+        const prod = produkList.find(p => p.id === Number(id));
+        if (prod) {
+          openEdit(prod);
+        }
+      });
+
+      // Handle Delete Click
+      table.on('click', '.btn-delete', function(this: any) {
+        const id = window.$(this).data('id');
+        confirmDelete(Number(id));
+      });
+    }
+
+    return () => {
+      if (typeof window !== "undefined" && window.$) {
+        const existingTable = window.$('#produk-table');
+        if (existingTable.length && window.$.fn.DataTable && window.$.fn.DataTable.isDataTable(existingTable[0])) {
+          existingTable.DataTable().destroy();
+        }
+      }
+      if (tableContainerRef.current) {
+        tableContainerRef.current.innerHTML = '';
+      }
+    };
+  }, [produkList]);
+
   return (
     <>
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -116,39 +218,7 @@ export default function ProdukClient({ produkList, umkmList, user, activeUmkmId 
 
       <div className="panel">
           <div className="panel-body p-0">
-              <div className="table-responsive p-3">
-                  <table className="table-custom data-table" style={{width:'100%'}}>
-                      <thead>
-                          <tr>
-                              <th>No</th>
-                              <th>UMKM</th>
-                              <th>Nama Produk</th>
-                              <th>Kategori</th>
-                              <th>Harga</th>
-                              <th>Deskripsi</th>
-                              <th>Aksi</th>
-                          </tr>
-                      </thead>
-                      <tbody>
-                          {produkList.map((p, idx) => (
-                          <tr key={p.id}>
-                              <td>{idx + 1}</td>
-                              <td>{p.nama_umkm || '-'}</td>
-                              <td><strong>{p.nama_produk}</strong></td>
-                              <td><span className="badge-status badge-naik-kelas">{p.kategori_produk}</span></td>
-                              <td>Rp {Number(p.harga_produk).toLocaleString('id-ID')}</td>
-                              <td className="text-muted fs-sm">{p.deskripsi_produk?.substring(0, 50)}</td>
-                              <td>
-                                  <div className="d-flex gap-1">
-                                      <button className="btn-warning-custom" onClick={() => openEdit(p)} title="Edit"><i className="bi bi-pencil"></i></button>
-                                      <button onClick={() => confirmDelete(p.id)} className="btn-danger-custom" title="Hapus"><i className="bi bi-trash"></i></button>
-                                  </div>
-                              </td>
-                          </tr>
-                          ))}
-                      </tbody>
-                  </table>
-              </div>
+              <div className="table-responsive p-3" ref={tableContainerRef}></div>
           </div>
       </div>
 
@@ -170,7 +240,7 @@ export default function ProdukClient({ produkList, umkmList, user, activeUmkmId 
                                       <input
                                           type="text"
                                           className="form-control form-control-custom bg-light"
-                                          value={umkmList.find(u => u.id === activeUmkmId)?.nama_umkm || ""}
+                                          value={umkmList.find(u => u.id === activeUmkmId)?.nama_umkm || (user.role === 'umkm' ? user.name : "")}
                                           readOnly
                                       />
                                   </>
@@ -230,11 +300,23 @@ export default function ProdukClient({ produkList, umkmList, user, activeUmkmId 
                       <div className="modal-body">
                           <div className="form-group-custom mb-3">
                               <label>UMKM</label>
-                              <select name="umkm_id" className="form-control form-control-custom" required defaultValue={editData?.umkm_id || ''}>
-                                  {umkmList.map(u => (
-                                      <option key={u.id} value={u.id}>{u.nama_umkm}</option>
-                                  ))}
-                              </select>
+                              {activeUmkmId ? (
+                                  <>
+                                      <input type="hidden" name="umkm_id" value={activeUmkmId} />
+                                      <input
+                                          type="text"
+                                          className="form-control form-control-custom bg-light"
+                                          value={umkmList.find(u => u.id === activeUmkmId)?.nama_umkm || (user.role === 'umkm' ? user.name : "")}
+                                          readOnly
+                                      />
+                                  </>
+                              ) : (
+                                  <select name="umkm_id" className="form-control form-control-custom" required defaultValue={editData?.umkm_id || ''}>
+                                      {umkmList.map(u => (
+                                          <option key={u.id} value={u.id}>{u.nama_umkm}</option>
+                                      ))}
+                                  </select>
+                              )}
                           </div>
                           <div className="form-group-custom mb-3">
                               <label>Nama Produk</label>

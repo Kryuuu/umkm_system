@@ -9,13 +9,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [username, setUsername] = useState("");
   const router = useRouter();
 
   const steps = [
     "Memverifikasi kredensial akun...",
     "Mengamankan sesi masuk sistem...",
     "Membaca data & profil UMKM...",
-    "Mempersiapkan lembar kerja Anda..."
+    "Mempersiapkan lembar kerja Anda...",
+    `hallo ( ${username} )`
   ];
 
   useEffect(() => {
@@ -35,6 +37,8 @@ export default function LoginPage() {
   }, [showLoadingOverlay]);
 
   async function handleSubmit(formData: FormData) {
+    const userVal = formData.get("username")?.toString() || "";
+    setUsername(userVal);
     setLoading(true);
     setError(null);
     const result = await loginAction(formData);
@@ -46,7 +50,7 @@ export default function LoginPage() {
       // Wait for animation steps before actual redirect
       setTimeout(() => {
         router.push("/dashboard");
-      }, 3000);
+      }, 3800);
     }
   }
 
@@ -161,7 +165,7 @@ export default function LoginPage() {
           </div>
 
           <div className="loading-bar-container">
-            <div className="loading-bar-fill" style={{ width: `${(loadingStep + 1) * 25}%` }}></div>
+            <div className="loading-bar-fill" style={{ width: `${((loadingStep + 1) / steps.length) * 100}%` }}></div>
           </div>
 
           <div className="loading-subtext">
