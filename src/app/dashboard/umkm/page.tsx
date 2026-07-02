@@ -24,6 +24,17 @@ export default async function DataUMKMPage() {
     redirect("/");
   }
 
+  // Normalize role to prevent stale session cookies
+  let normalizedRole = user.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  user.role = normalizedRole;
+
   // If role is umkm, fetch their detailed profile and parameters
   if (user.role === 'Mitra') {
     const activeUmkmId = user.umkm_id || user.id;
