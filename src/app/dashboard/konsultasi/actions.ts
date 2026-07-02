@@ -106,6 +106,21 @@ export async function replyKonsultasi(formData: FormData) {
     const { data: parent, error: fetchErr } = await supabaseAdmin.from("konsultasi").select("*").eq("id", parentId).single();
     if (fetchErr || !parent) return { success: false, message: "Thread tidak ditemukan" };
 
+    // Security Access Control
+    if (user.role === "Mitra") {
+      const myUmkmId = user.umkm_id || user.id;
+      if (parent.umkm_id !== myUmkmId) {
+        return { success: false, message: "Akses ditolak" };
+      }
+    } else if (user.role === "Staff") {
+      const { data: targetUmkm } = await supabaseAdmin.from("umkm").select("domisili").eq("id", parent.umkm_id).single();
+      const userDomisili = (user.domisili || "").toLowerCase();
+      const umkmDomisili = (targetUmkm?.domisili || "").toLowerCase();
+      if (userDomisili && !umkmDomisili.includes(userDomisili)) {
+        return { success: false, message: "Akses ditolak" };
+      }
+    }
+
     const pengirimId = user.role === "Mitra" ? (user.umkm_id || user.id) : user.id;
 
     // Insert reply
@@ -172,6 +187,27 @@ export async function replyKonsultasi(formData: FormData) {
 
 export async function deleteKonsultasi(id: number) {
   try {
+    const user = await getUser();
+
+    // Fetch parent message to verify access
+    const { data: parent, error: fetchErr } = await supabaseAdmin.from("konsultasi").select("umkm_id").eq("id", id).single();
+    if (fetchErr || !parent) return { success: false, message: "Thread tidak ditemukan" };
+
+    // Security Access Control
+    if (user.role === "Mitra") {
+      const myUmkmId = user.umkm_id || user.id;
+      if (parent.umkm_id !== myUmkmId) {
+        return { success: false, message: "Akses ditolak" };
+      }
+    } else if (user.role === "Staff") {
+      const { data: targetUmkm } = await supabaseAdmin.from("umkm").select("domisili").eq("id", parent.umkm_id).single();
+      const userDomisili = (user.domisili || "").toLowerCase();
+      const umkmDomisili = (targetUmkm?.domisili || "").toLowerCase();
+      if (userDomisili && !umkmDomisili.includes(userDomisili)) {
+        return { success: false, message: "Akses ditolak" };
+      }
+    }
+
     // Delete replies first
     const { error: replyErr } = await supabaseAdmin.from("konsultasi").delete().eq("parent_id", id);
     if (replyErr) return { success: false, message: replyErr.message };
@@ -189,6 +225,27 @@ export async function deleteKonsultasi(id: number) {
 
 export async function getThreadMessagesAction(threadId: number) {
   try {
+    const user = await getUser();
+
+    // Fetch parent message to verify access
+    const { data: parent, error: fetchErr } = await supabaseAdmin.from("konsultasi").select("umkm_id").eq("id", threadId).single();
+    if (fetchErr || !parent) throw new Error("Thread tidak ditemukan");
+
+    // Security Access Control
+    if (user.role === "Mitra") {
+      const myUmkmId = user.umkm_id || user.id;
+      if (parent.umkm_id !== myUmkmId) {
+        throw new Error("Akses ditolak");
+      }
+    } else if (user.role === "Staff") {
+      const { data: targetUmkm } = await supabaseAdmin.from("umkm").select("domisili").eq("id", parent.umkm_id).single();
+      const userDomisili = (user.domisili || "").toLowerCase();
+      const umkmDomisili = (targetUmkm?.domisili || "").toLowerCase();
+      if (userDomisili && !umkmDomisili.includes(userDomisili)) {
+        throw new Error("Akses ditolak");
+      }
+    }
+
     const { data: messagesRaw, error } = await supabaseAdmin
       .from("konsultasi")
       .select(`*, umkm:umkm_id(nama_umkm)`)

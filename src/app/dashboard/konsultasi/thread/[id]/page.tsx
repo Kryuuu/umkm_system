@@ -29,12 +29,37 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   // Fetch parent message
   const { data: parentMessageRaw, error: parentErr } = await supabaseAdmin
     .from("konsultasi")
-    .select(`*, umkm:umkm_id(nama_umkm)`)
+    .select(`*, umkm:umkm_id(nama_umkm, domisili)`)
     .eq("id", threadId)
     .single();
 
   if (parentErr || !parentMessageRaw) {
     redirect("/dashboard/konsultasi");
+  }
+
+  // Normalize role to prevent stale session cookies
+  let normalizedRole = user.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  user.role = normalizedRole;
+
+  // Security Access Control
+  if (user.role === "Mitra") {
+    const myUmkmId = user.umkm_id || user.id;
+    if (parentMessageRaw.umkm_id !== myUmkmId) {
+      redirect("/dashboard/konsultasi");
+    }
+  } else if (user.role === "Staff") {
+    const userDomisili = (user.domisili || "").toLowerCase();
+    const umkmDomisili = (parentMessageRaw.umkm?.domisili || "").toLowerCase();
+    if (userDomisili && !umkmDomisili.includes(userDomisili)) {
+      redirect("/dashboard/konsultasi");
+    }
   }
 
   const parentMessage = {
