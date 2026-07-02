@@ -186,3 +186,24 @@ export async function deleteKonsultasi(id: number) {
     return { success: false, message: err.message };
   }
 }
+
+export async function getThreadMessagesAction(threadId: number) {
+  try {
+    const { data: messagesRaw, error } = await supabaseAdmin
+      .from("konsultasi")
+      .select(`*, umkm:umkm_id(nama_umkm)`)
+      .or(`id.eq.${threadId},parent_id.eq.${threadId}`)
+      .order("created_at", { ascending: true });
+      
+    if (error) throw error;
+    
+    const messages = messagesRaw?.map(m => ({
+      ...m,
+      nama_umkm: m.umkm?.nama_umkm
+    })) || [];
+    
+    return { success: true, messages };
+  } catch (err: any) {
+    return { success: false, message: err.message, messages: [] };
+  }
+}

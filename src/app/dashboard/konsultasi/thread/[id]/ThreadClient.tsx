@@ -2,17 +2,42 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { replyKonsultasi } from "../../actions";
+import { replyKonsultasi, getThreadMessagesAction } from "../../actions";
 
 export default function ThreadClient({ parentMessage, thread, user }: { parentMessage: any, thread: any[], user: any }) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [alertInfo, setAlertInfo] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+  const [messages, setMessages] = useState<any[]>(thread);
+  const prevCountRef = useRef(0);
+
+  const fetchMessages = async () => {
+    try {
+      const res = await getThreadMessagesAction(parentMessage.id);
+      if (res.success && res.messages) {
+        if (res.messages.length !== messages.length || JSON.stringify(res.messages) !== JSON.stringify(messages)) {
+          setMessages(res.messages);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch new messages:", err);
+    }
+  };
+
+  useEffect(() => {
+    // Poll every 3 seconds for new messages
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, [messages, parentMessage.id]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      const shouldScroll = prevCountRef.current === 0 || messages.length > prevCountRef.current;
+      if (shouldScroll) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
     }
-  }, [thread]);
+    prevCountRef.current = messages.length;
+  }, [messages]);
 
   useEffect(() => {
     if (alertInfo) {
@@ -26,8 +51,9 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
     const formData = new FormData(e.target);
     const res = await replyKonsultasi(formData);
     if (res.success) {
-      setAlertInfo({ type: 'success', message: "Balasan berhasil dikirim!" });
       e.target.reset();
+      // Immediately fetch messages to show the new message instantly
+      await fetchMessages();
     } else {
       setAlertInfo({ type: 'danger', message: "Gagal membalas: " + res.message });
     }
@@ -72,7 +98,7 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
           id="chatContainer"
           ref={chatContainerRef}
         >
-          {thread.map((msg) => (
+          {messages.map((msg) => (
             <div
               key={msg.id}
               className={`d-flex mb-3 ${msg.pengirim_role === user.role ? "justify-content-end" : "justify-content-start"}`}
