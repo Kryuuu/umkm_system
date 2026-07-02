@@ -103,7 +103,7 @@ export default function PenjualanClient({ penjualanList, umkmList, produkList, u
   const handleCreate = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    if (user.role === 'umkm') {
+    if (user.role === 'Mitra') {
       formData.set('umkm_id', (user.umkm_id || user.id).toString());
     }
 
@@ -184,7 +184,7 @@ export default function PenjualanClient({ penjualanList, umkmList, produkList, u
       return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const availableProduk = user.role === 'umkm' 
+  const availableProduk = user.role === 'Mitra' 
     ? produkList.filter(p => p.umkm_id === (user.umkm_id || user.id))
     : produkList.filter(p => p.umkm_id == selectedUmkm);
 
@@ -196,7 +196,7 @@ export default function PenjualanClient({ penjualanList, umkmList, produkList, u
               <p className="text-muted fs-sm mb-0">Record penjualan harian UMKM per produk</p>
           </div>
           <div className="d-flex gap-2">
-              {user.role !== 'umkm' && (
+              {user.role !== 'Mitra' && (
               <Link href="/dashboard/penjualan" className="btn-outline-custom">
                   <i className="bi bi-arrow-left"></i> Kembali
               </Link>
@@ -227,7 +227,7 @@ export default function PenjualanClient({ penjualanList, umkmList, produkList, u
                       <div className="modal-body">
                           <div className="form-group-custom mb-3"><label>Tanggal Penjualan</label><input type="date" name="tanggal" className="form-control form-control-custom" defaultValue={new Date().toISOString().split('T')[0]} required /></div>
                           
-                          {user.role !== 'umkm' && (
+                          {user.role !== 'Mitra' && (
                               <div className="form-group-custom mb-3">
                                   <label>UMKM</label>
                                   {activeUmkmId ? (

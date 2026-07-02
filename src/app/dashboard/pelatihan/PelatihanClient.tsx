@@ -128,7 +128,7 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
       tableContainerRef.current.innerHTML = '';
     }
 
-    const showAksi = user.role !== 'umkm';
+    const showAksi = user.role !== 'Mitra';
     const tableHtml = `
       <table id="pelatihan-table" class="table-custom" style="width:100%">
           <thead>
@@ -250,7 +250,7 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
               <h5 className="fw-bold mb-1">Pelatihan UMKM</h5>
               <p className="text-muted fs-sm mb-0">Kelola program pelatihan UMKM</p>
           </div>
-          {user.role !== 'umkm' ? (
+          {user.role !== 'Mitra' ? (
           <button className="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addPelatihanModal">
               <i className="bi bi-plus-lg"></i> Tambah Pelatihan
           </button>

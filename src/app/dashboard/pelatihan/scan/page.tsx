@@ -19,7 +19,7 @@ export default async function ScanPage() {
   }
 
   // Restrict access to UMKM users
-  if (user.role !== "umkm") {
+  if (user.role !== "Mitra") {
     redirect("/dashboard");
   }
 

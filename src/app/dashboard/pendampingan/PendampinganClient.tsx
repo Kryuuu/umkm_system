@@ -106,12 +106,12 @@ export default function PendampinganClient({ pendampinganList, umkmList, user, a
               <p className="text-muted fs-sm mb-0">Record kegiatan pendampingan fasilitator</p>
           </div>
           <div className="d-flex gap-2">
-              {user.role !== 'umkm' && (
+              {user.role !== 'Mitra' && (
               <Link href="/dashboard/pendampingan" className="btn-outline-custom">
                   <i className="bi bi-arrow-left"></i> Kembali
               </Link>
               )}
-              {user.role !== 'umkm' && (
+              {user.role !== 'Mitra' && (
               <button className="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addPendampinganModal">
                   <i className="bi bi-plus-lg"></i> Catat Pendampingan
               </button>
@@ -132,7 +132,7 @@ export default function PendampinganClient({ pendampinganList, umkmList, user, a
                               <th>Jenis Pendampingan</th>
                               <th>Status Hasil</th>
                               <th>Catatan</th>
-                              {user.role !== 'umkm' && <th>Aksi</th>}
+                              {user.role !== 'Mitra' && <th>Aksi</th>}
                           </tr>
                       </thead>
                       <tbody>
@@ -152,7 +152,7 @@ export default function PendampinganClient({ pendampinganList, umkmList, user, a
                                   <td><span className="badge-status badge-naik-kelas">{p.jenis_pendampingan}</span></td>
                                   <td><span className={`badge-status ${badgeStatus}`}>{p.hasil}</span></td>
                                   <td className="fs-sm text-muted">{p.catatan?.substring(0, 40) || '-'}</td>
-                                  {user.role !== 'umkm' && (
+                                  {user.role !== 'Mitra' && (
                                   <td>
                                       <div className="d-flex gap-1">
                                           <button className="btn-warning-custom btn-table-action" onClick={() => openEdit(p)} title="Edit"><i className="bi bi-pencil"></i></button>

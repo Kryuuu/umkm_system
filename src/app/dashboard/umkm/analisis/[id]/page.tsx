@@ -27,7 +27,7 @@ export default async function AnalisisPage({ params }: { params: Promise<{ id: s
   }
 
   // Security check: UMKM user can only view their own analysis
-  if (user.role === "umkm" && user.umkm_id !== umkmId && user.id !== umkmId) {
+  if (user.role === "Mitra" && user.umkm_id !== umkmId && user.id !== umkmId) {
     redirect("/dashboard");
   }
 
@@ -357,7 +357,7 @@ export default async function AnalisisPage({ params }: { params: Promise<{ id: s
                 </div>
               </div>
             </div>
-            {user.role !== "umkm" && (
+            {user.role !== "Mitra" && (
               <div className="panel-footer bg-light text-end rounded-bottom-4 p-3">
                 <Link href="/dashboard/umkm" className="btn btn-primary rounded-pill px-4">
                   <i className="bi bi-pencil-square me-2"></i> Update Data UMKM

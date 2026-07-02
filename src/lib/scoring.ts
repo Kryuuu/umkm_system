@@ -101,7 +101,7 @@ export async function calculateScore(umkmId: number) {
     if (newLevel > oldLevel && oldLevel > 0) {
       // Notify UMKM
       await supabaseAdmin.from("notifikasi").insert({
-        target_role: "umkm",
+        target_role: "Mitra",
         target_id: umkmId,
         tipe: "naik_kelas",
         judul: "Selamat! UMKM Anda Naik Kelas 🎉",
@@ -111,7 +111,7 @@ export async function calculateScore(umkmId: number) {
       // Notify Fasilitator
       if (umkm.fasilitator_id) {
         await supabaseAdmin.from("notifikasi").insert({
-          target_role: "fasilitator",
+          target_role: "Staff",
           target_id: umkm.fasilitator_id,
           tipe: "naik_kelas",
           judul: "UMKM Binaan Naik Kelas 🎉",

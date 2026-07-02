@@ -17,6 +17,18 @@ async function checkAuth() {
   const token = cookieStore.get("auth_token")?.value;
   if (!token) throw new Error("Unauthorized");
   const { payload } = await jwtVerify(token, secretKey);
+  
+  // Normalize role to prevent stale session cookies
+  let normalizedRole = payload.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  payload.role = normalizedRole;
+
   return payload as any;
 }
 
@@ -26,7 +38,7 @@ export async function createPenjualanAction(formData: FormData) {
 
     const tanggal = formData.get("tanggal") as string;
     const rawUmkmId = formData.get("umkm_id");
-    const umkmId = user.role === "umkm" ? (user.umkm_id || user.id) : parseInt(rawUmkmId as string);
+    const umkmId = user.role === "Mitra" ? (user.umkm_id || user.id) : parseInt(rawUmkmId as string);
     const produkId = parseInt(formData.get("produk_id") as string);
     const jumlah = parseInt(formData.get("jumlah") as string);
     const jumlahPelanggan = parseInt(formData.get("jumlah_pelanggan") as string) || 1;

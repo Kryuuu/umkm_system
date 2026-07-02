@@ -31,7 +31,7 @@ export default async function FasilitatorPage() {
   }
 
   let allFasilitator = [];
-  if (user.role === 'admin') {
+  if (user.role === 'Admin') {
     const { data } = await supabaseAdmin.from('fasilitator').select('*').order('id', { ascending: true });
     allFasilitator = data || [];
   }

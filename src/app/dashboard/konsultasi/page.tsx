@@ -31,13 +31,13 @@ export default async function KonsultasiPage({
 
   // Fetch list of UMKM for selector
   let umkmListQuery = supabaseAdmin.from("umkm").select("id, nama_umkm, nama_pemilik");
-  if (user.role === "fasilitator") {
+  if (user.role === "Staff") {
     umkmListQuery = umkmListQuery.ilike("domisili", `%${user.domisili || ""}%`);
   }
   const { data: umkmList } = await umkmListQuery;
 
   // Determine if we should show the list of all UMKM conversations (for admin/fasil when no umkm_id is selected)
-  const isConversationsList = user.role !== "umkm" && !umkm_id;
+  const isConversationsList = user.role !== "Mitra" && !umkm_id;
 
   if (isConversationsList) {
     // Query all messages (both parents and replies) to group by UMKM
@@ -47,7 +47,7 @@ export default async function KonsultasiPage({
       .order("created_at", { ascending: false });
 
     // Filter by facilitator domisili if needed
-    if (user.role === "fasilitator" && allMessages) {
+    if (user.role === "Staff" && allMessages) {
       const domisiliLower = (user.domisili || "").toLowerCase();
       allMessages = allMessages.filter(msg => 
         msg.umkm?.domisili && msg.umkm.domisili.toLowerCase().includes(domisiliLower)
@@ -93,7 +93,7 @@ export default async function KonsultasiPage({
   }
 
   // Determine active umkm_id
-  const activeUmkmId = user.role === "umkm" ? (user.umkm_id || user.id) : parseInt(umkm_id as string);
+  const activeUmkmId = user.role === "Mitra" ? (user.umkm_id || user.id) : parseInt(umkm_id as string);
 
   // Fetch consultation threads for the active UMKM
   let query = supabaseAdmin

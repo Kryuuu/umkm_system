@@ -20,7 +20,7 @@ export async function createFasilitator(formData: FormData) {
       username: rawData.username,
       password: hashedPassword,
       nickname: rawData.nickname,
-      role: rawData.role || 'fasilitator',
+      role: rawData.role || 'Staff',
       no_telpon: rawData.no_telpon,
       email: rawData.email,
       agama: rawData.agama,
@@ -46,7 +46,7 @@ export async function updateFasilitator(formData: FormData) {
 
     const updates: any = {
       nickname: rawData.nickname,
-      role: rawData.role || 'fasilitator',
+      role: rawData.role || 'Staff',
       no_telpon: rawData.no_telpon,
       email: rawData.email,
       agama: rawData.agama,

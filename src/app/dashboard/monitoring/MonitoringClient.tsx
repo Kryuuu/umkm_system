@@ -9,7 +9,7 @@ export default function MonitoringClient({ monitoringList, umkmList, user, activ
 
   const [periods, setPeriods] = useState<any[]>([]);
   const [loadingPeriods, setLoadingPeriods] = useState<boolean>(false);
-  const [selectedUmkm, setSelectedUmkm] = useState<number | undefined>(activeUmkmId || (user.role === 'umkm' ? (user.umkm_id || user.id) : undefined));
+  const [selectedUmkm, setSelectedUmkm] = useState<number | undefined>(activeUmkmId || (user.role === 'Mitra' ? (user.umkm_id || user.id) : undefined));
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [stats, setStats] = useState({ omzet: 0, jumlah_produk: 0, jumlah_tenaga_kerja: 0, jumlah_pelanggan: 0 });
 
@@ -82,7 +82,7 @@ export default function MonitoringClient({ monitoringList, umkmList, user, activ
                   <td>
                       <div class="d-flex gap-1">
                           <button class="btn-warning-custom btn-table-action btn-edit" data-index="${idx}" title="Edit"><i class="bi bi-pencil"></i></button>
-                          ${user.role === 'admin' ? `
+                          ${user.role === 'Admin' ? `
                           <button class="btn-danger-custom btn-table-action btn-delete" data-id="${m.id}" title="Hapus"><i class="bi bi-trash"></i></button>
                           ` : ''}
                       </div>
@@ -186,7 +186,7 @@ export default function MonitoringClient({ monitoringList, umkmList, user, activ
   const handleCreate = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    if (user.role === 'umkm') {
+    if (user.role === 'Mitra') {
       formData.set('umkm_id', (user.umkm_id || user.id).toString());
     }
 
@@ -305,7 +305,7 @@ export default function MonitoringClient({ monitoringList, umkmList, user, activ
               <p className="text-muted fs-sm mb-0">Monitoring perkembangan usaha UMKM</p>
           </div>
           <div className="d-flex gap-2">
-              {user.role !== 'umkm' && (
+              {user.role !== 'Mitra' && (
               <Link href="/dashboard/monitoring" className="btn-outline-custom">
                   <i className="bi bi-arrow-left"></i> Kembali
               </Link>
@@ -378,7 +378,7 @@ export default function MonitoringClient({ monitoringList, umkmList, user, activ
                               <div className="col-md-6">
                                   <div className="form-group-custom">
                                       <label>UMKM</label>
-                                      {user.role !== 'umkm' ? (
+                                      {user.role !== 'Mitra' ? (
                                           activeUmkmId ? (
                                               <>
                                                   <input type="hidden" name="umkm_id" value={activeUmkmId} />

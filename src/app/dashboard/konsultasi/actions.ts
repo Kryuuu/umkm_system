@@ -16,6 +16,18 @@ async function getUser() {
   const token = cookieStore.get("auth_token")?.value;
   if (!token) throw new Error("Unauthorized");
   const { payload } = await jwtVerify(token, secretKey);
+  
+  // Normalize role to prevent stale session cookies from violating database constraints
+  let normalizedRole = payload.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  payload.role = normalizedRole;
+
   return payload as any;
 }
 
@@ -24,8 +36,8 @@ export async function createKonsultasi(formData: FormData) {
     const user = await getUser();
     const rawData = Object.fromEntries(formData.entries());
 
-    const umkmId = user.role === "umkm" ? (user.umkm_id || user.id) : parseInt(rawData.umkm_id as string);
-    const pengirimId = user.role === "umkm" ? (user.umkm_id || user.id) : user.id;
+    const umkmId = user.role === "Mitra" ? (user.umkm_id || user.id) : parseInt(rawData.umkm_id as string);
+    const pengirimId = user.role === "Mitra" ? (user.umkm_id || user.id) : user.id;
 
     // Insert to konsultasi
     const { data: newChat, error } = await supabaseAdmin.from("konsultasi").insert({
@@ -41,12 +53,12 @@ export async function createKonsultasi(formData: FormData) {
     if (error) return { success: false, message: error.message };
 
     // Notification logic
-    if (user.role === "umkm") {
+    if (user.role === "Mitra") {
       const { data: uInfo } = await supabaseAdmin.from("umkm").select("nama_umkm, fasilitator_id").eq("id", umkmId).single();
       if (uInfo) {
         if (uInfo.fasilitator_id) {
           await supabaseAdmin.from("notifikasi").insert({
-            target_role: "fasilitator",
+            target_role: "Staff",
             target_id: uInfo.fasilitator_id,
             tipe: "chat",
             judul: "Pesan Baru dari UMKM",
@@ -55,10 +67,10 @@ export async function createKonsultasi(formData: FormData) {
         }
 
         // Notify admins
-        const { data: admins } = await supabaseAdmin.from("fasilitator").select("id").eq("role", "admin");
+        const { data: admins } = await supabaseAdmin.from("fasilitator").select("id").eq("role", "Admin");
         if (admins && admins.length > 0) {
           const adminNotifs = admins.map(admin => ({
-            target_role: "admin",
+            target_role: "Admin",
             target_id: admin.id,
             tipe: "chat",
             judul: "Pesan Baru dari UMKM",
@@ -69,10 +81,10 @@ export async function createKonsultasi(formData: FormData) {
       }
     } else {
       await supabaseAdmin.from("notifikasi").insert({
-        target_role: "umkm",
+        target_role: "Mitra",
         target_id: umkmId,
         tipe: "chat",
-        judul: `Pesan Baru dari ${user.role === 'admin' ? 'Admin' : 'Fasilitator'}`,
+        judul: `Pesan Baru dari ${user.role === 'Admin' ? 'Admin' : 'Staff'}`,
         pesan: `Anda mendapat pesan baru: "${rawData.subjek}"`
       });
     }
@@ -94,7 +106,7 @@ export async function replyKonsultasi(formData: FormData) {
     const { data: parent, error: fetchErr } = await supabaseAdmin.from("konsultasi").select("*").eq("id", parentId).single();
     if (fetchErr || !parent) return { success: false, message: "Thread tidak ditemukan" };
 
-    const pengirimId = user.role === "umkm" ? (user.umkm_id || user.id) : user.id;
+    const pengirimId = user.role === "Mitra" ? (user.umkm_id || user.id) : user.id;
 
     // Insert reply
     const { error } = await supabaseAdmin.from("konsultasi").insert({
@@ -116,12 +128,12 @@ export async function replyKonsultasi(formData: FormData) {
       .neq("pengirim_role", user.role);
 
     // Notification logic
-    if (user.role === "umkm") {
+    if (user.role === "Mitra") {
       const { data: uInfo } = await supabaseAdmin.from("umkm").select("nama_umkm, fasilitator_id").eq("id", parent.umkm_id).single();
       if (uInfo) {
         if (uInfo.fasilitator_id) {
           await supabaseAdmin.from("notifikasi").insert({
-            target_role: "fasilitator",
+            target_role: "Staff",
             target_id: uInfo.fasilitator_id,
             tipe: "chat",
             judul: "Balasan Baru dari UMKM",
@@ -129,10 +141,10 @@ export async function replyKonsultasi(formData: FormData) {
           });
         }
 
-        const { data: admins } = await supabaseAdmin.from("fasilitator").select("id").eq("role", "admin");
+        const { data: admins } = await supabaseAdmin.from("fasilitator").select("id").eq("role", "Admin");
         if (admins && admins.length > 0) {
           const adminNotifs = admins.map(admin => ({
-            target_role: "admin",
+            target_role: "Admin",
             target_id: admin.id,
             tipe: "chat",
             judul: "Balasan Baru dari UMKM",
@@ -143,10 +155,10 @@ export async function replyKonsultasi(formData: FormData) {
       }
     } else {
       await supabaseAdmin.from("notifikasi").insert({
-        target_role: "umkm",
+        target_role: "Mitra",
         target_id: parent.umkm_id,
         tipe: "chat",
-        judul: `Balasan Baru dari ${user.role === 'admin' ? 'Admin' : 'Fasilitator'}`,
+        judul: `Balasan Baru dari ${user.role === 'Admin' ? 'Admin' : 'Staff'}`,
         pesan: `Terdapat balasan baru di thread: "${parent.subjek}"`
       });
     }

@@ -27,7 +27,7 @@ export default async function KehadiranPage({ params }: { params: Promise<{ id: 
   }
 
   // Only admins or facilitators can view presence
-  if (user.role === "umkm") {
+  if (user.role === "Mitra") {
     redirect("/dashboard");
   }
 

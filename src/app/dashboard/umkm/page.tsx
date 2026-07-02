@@ -25,7 +25,7 @@ export default async function DataUMKMPage() {
   }
 
   // If role is umkm, fetch their detailed profile and parameters
-  if (user.role === 'umkm') {
+  if (user.role === 'Mitra') {
     const activeUmkmId = user.umkm_id || user.id;
     const [umkmRes, prodRes, monRes] = await Promise.all([
       supabaseAdmin.from('umkm').select('*').eq('id', activeUmkmId).single(),

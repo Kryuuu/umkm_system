@@ -3,6 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { 
+  getNotificationsAction, 
+  markNotificationAsReadAction, 
+  markAllNotificationsAsReadAction 
+} from "@/app/dashboard/notificationsActions";
 
 export default function DashboardLayoutWrapper({ 
   children, 
@@ -17,6 +22,57 @@ export default function DashboardLayoutWrapper({
   const [laporanExpanded, setLaporanExpanded] = useState(false);
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
   const [logoutStep, setLogoutStep] = useState(0);
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await getNotificationsAction();
+      if (res.success) {
+        setNotifications(res.notifications);
+        setUnreadCount(res.notifications.filter((n: any) => !n.is_read).length);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.is_read) {
+      await markNotificationAsReadAction(notif.id);
+      setNotifications(prev =>
+        prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+    setShowNotifications(false);
+    
+    if (notif.tipe === 'chat') {
+      window.location.href = '/dashboard/konsultasi';
+    } else if (notif.tipe === 'naik_kelas') {
+      window.location.href = `/dashboard/umkm/analisis/${notif.target_id}`;
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      const res = await markAllNotificationsAsReadAction();
+      if (res.success) {
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setUnreadCount(0);
+      }
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    }
+  };
 
   const logoutSteps = [
     "Menyimpan perubahan sesi...",
@@ -205,21 +261,21 @@ export default function DashboardLayoutWrapper({
               <span>Dashboard</span>
             </Link>
 
-            {user.role === 'admin' && (
+            {user.role === 'Admin' && (
               <Link href="/dashboard/fasilitator" className={`nav-item ${pathname === '/dashboard/fasilitator' ? 'active' : ''}`}>
                 <i className="bi bi-person-badge-fill"></i>
-                <span>Data Fasilitator</span>
+                <span>Data Staff</span>
               </Link>
             )}
             
-            {user.role === 'fasilitator' && (
+            {user.role === 'Staff' && (
               <Link href="/dashboard/fasilitator/profile" className={`nav-item ${pathname === '/dashboard/fasilitator/profile' ? 'active' : ''}`}>
                 <i className="bi bi-person-circle"></i>
                 <span>Edit Profil</span>
               </Link>
             )}
 
-            {user.role !== 'umkm' && (
+            {user.role !== 'Mitra' && (
               <Link href="/dashboard/umkm/master" className={`nav-item ${pathname.includes('/umkm/master') ? 'active' : ''}`}>
                 <i className="bi bi-database-fill"></i>
                 <span>Master UMKM</span>
@@ -228,7 +284,7 @@ export default function DashboardLayoutWrapper({
 
             <Link href="/dashboard/umkm" className={`nav-item ${pathname === '/dashboard/umkm' ? 'active' : ''}`}>
               <i className="bi bi-shop"></i>
-              <span>{user.role === 'umkm' ? 'Info UMKM' : 'Data UMKM'}</span>
+              <span>{user.role === 'Mitra' ? 'Info UMKM' : 'Data UMKM'}</span>
             </Link>
           </div>
 
@@ -243,7 +299,7 @@ export default function DashboardLayoutWrapper({
               <span>Perkembangan Usaha</span>
             </Link>
             
-            {(user.role === 'admin' || user.role === 'fasilitator') ? (
+            {(user.role === 'Admin' || user.role === 'Staff') ? (
               <>
                 <Link href="/dashboard/pelatihan" className={`nav-item ${isActive('/dashboard/pelatihan')}`}>
                   <i className="bi bi-mortarboard-fill"></i>
@@ -284,7 +340,7 @@ export default function DashboardLayoutWrapper({
               <span>Leaderboard</span>
             </Link>
 
-            {user.role === 'admin' && (
+            {user.role === 'Admin' && (
               <>
                 <a href="#" className={`nav-item ${isLaporanActive} ${laporanExpanded ? 'expanded' : ''}`} onClick={(e) => { e.preventDefault(); setLaporanExpanded(!laporanExpanded); }}>
                   <i className="bi bi-file-earmark-bar-graph-fill"></i>
@@ -292,7 +348,7 @@ export default function DashboardLayoutWrapper({
                   <i className="bi bi-chevron-right nav-arrow"></i>
                 </a>
                 <div className={`nav-submenu ${isLaporanActive || laporanExpanded ? 'show' : ''}`} id="laporanSubmenu">
-                  <Link href="/dashboard/laporan/fasilitator" className={`nav-item ${isActive('/dashboard/laporan/fasilitator')}`}><i className="bi bi-dot"></i> Kinerja Fasilitator</Link>
+                  <Link href="/dashboard/laporan/fasilitator" className={`nav-item ${isActive('/dashboard/laporan/fasilitator')}`}><i className="bi bi-dot"></i> Kinerja Staff</Link>
                   <Link href="/dashboard/laporan/umkm" className={`nav-item ${isActive('/dashboard/laporan/umkm')}`}><i className="bi bi-dot"></i> UMKM Binaan</Link>
                   <Link href="/dashboard/laporan/statistik" className={`nav-item ${isActive('/dashboard/laporan/statistik')}`}><i className="bi bi-dot"></i> Statistik</Link>
                 </div>
@@ -306,10 +362,10 @@ export default function DashboardLayoutWrapper({
             <div className="sidebar-avatar">{getInitials(user.name)}</div>
             <div className="sidebar-user-info">
               <h6>{user.name}</h6>
-              <span>{user.role === 'admin' ? 'Administrator' : user.role === 'fasilitator' ? 'Fasilitator' : 'UMKM Binaan'}</span>
+              <span>{user.role === 'Admin' ? 'Admin' : user.role === 'Staff' ? 'Staff' : 'Mitra'}</span>
             </div>
           </div>
-          {user.role === 'admin' && (
+          {user.role === 'Admin' && (
             <Link href="/dashboard/fasilitator/profile" className="nav-item mb-1 py-1" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', opacity: 0.8 }}>
               <i className="bi bi-gear-fill"></i>
               <span>Setelan Profil</span>
@@ -333,7 +389,184 @@ export default function DashboardLayoutWrapper({
             <span className="page-title">UMKM Monitor</span>
           </div>
           <div className="header-actions">
-            <button className={`btn btn-sm rounded-circle me-3 ${theme === 'dark' ? 'btn-dark' : 'btn-light'}`} onClick={toggleTheme} title="Ganti Tema">
+            {/* Style for Notification Dropdown */}
+            <style>{`
+              .notification-wrapper {
+                position: relative;
+                display: inline-block;
+              }
+              .notification-dropdown {
+                position: absolute;
+                top: 45px;
+                right: 0;
+                width: 320px;
+                max-height: 420px;
+                background: #ffffff;
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                border-radius: 16px;
+                z-index: 10000;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+              }
+              .notification-header {
+                padding: 14px 16px;
+                border-bottom: 1px solid rgba(0,0,0,0.08);
+                background: #f8f9fa;
+              }
+              .notification-body {
+                overflow-y: auto;
+                flex-grow: 1;
+                max-height: 350px;
+              }
+              .notification-item {
+                padding: 12px 16px;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background: #ffffff;
+              }
+              .notification-item:hover {
+                background: #f8f9fa;
+              }
+              .notification-item.unread {
+                background: rgba(13, 110, 253, 0.03);
+              }
+              .notification-item.unread:hover {
+                background: rgba(13, 110, 253, 0.06);
+              }
+              .notification-dot {
+                width: 8px;
+                height: 8px;
+                background-color: #0d6efd;
+                border-radius: 50%;
+                flex-shrink: 0;
+                margin-top: 6px;
+                box-shadow: 0 0 8px rgba(13, 110, 253, 0.5);
+              }
+              .fs-xxs {
+                font-size: 0.675rem;
+              }
+              .line-clamp-2 {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+              }
+              
+              /* Dark Mode Adaptations */
+              [data-theme='dark'] .notification-dropdown {
+                background: #111827;
+                border-color: rgba(255, 255, 255, 0.08) !important;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+              }
+              [data-theme='dark'] .notification-header {
+                background: #1f2937;
+                border-bottom-color: rgba(255, 255, 255, 0.08);
+                color: #ffffff;
+              }
+              [data-theme='dark'] .notification-item {
+                background: #111827;
+                border-bottom-color: rgba(255, 255, 255, 0.05);
+              }
+              [data-theme='dark'] .notification-item:hover {
+                background: #1f2937;
+              }
+              [data-theme='dark'] .notification-item.unread {
+                background: rgba(13, 110, 253, 0.1);
+              }
+              [data-theme='dark'] .notification-item.unread:hover {
+                background: rgba(13, 110, 253, 0.15);
+              }
+              [data-theme='dark'] .notification-icon {
+                background-color: rgba(255, 255, 255, 0.05) !important;
+              }
+              [data-theme='dark'] .notification-icon i {
+                color: #ffffff !important;
+              }
+              [data-theme='dark'] .text-dark {
+                color: #f3f4f6 !important;
+              }
+            `}</style>
+
+            {/* Notification Bell Dropdown */}
+            <div className="notification-wrapper me-3">
+              <button 
+                className={`btn btn-sm rounded-circle position-relative ${theme === 'dark' ? 'btn-dark' : 'btn-light'}`} 
+                onClick={() => setShowNotifications(!showNotifications)} 
+                title="Notifikasi"
+                style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <i className="bi bi-bell-fill" style={{ fontSize: '1rem' }}></i>
+                {unreadCount > 0 && (
+                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.6rem', padding: '0.25em 0.5em', marginTop: '4px', marginLeft: '-4px' }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <>
+                  <div 
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }} 
+                    onClick={() => setShowNotifications(false)}
+                  />
+                  <div className="notification-dropdown shadow-lg animate-slide-down">
+                    <div className="notification-header d-flex justify-content-between align-items-center">
+                      <span className="fw-bold fs-sm">Notifikasi</span>
+                      {unreadCount > 0 && (
+                        <button className="btn btn-sm btn-link text-decoration-none p-0 fs-xs fw-semibold" onClick={handleMarkAllRead}>
+                          Tandai semua dibaca
+                        </button>
+                      )}
+                    </div>
+                    <div className="notification-body">
+                      {notifications.length === 0 ? (
+                        <div className="text-center py-5 text-muted">
+                          <i className="bi bi-bell-slash fs-3 mb-2 d-block opacity-50"></i>
+                          <span className="fs-xs">Tidak ada notifikasi</span>
+                        </div>
+                      ) : (
+                        notifications.map((notif) => {
+                          const iconClass = notif.tipe === 'chat' 
+                            ? 'bi-chat-left-dots-fill text-primary' 
+                            : notif.tipe === 'naik_kelas' 
+                              ? 'bi-trophy-fill text-warning' 
+                              : 'bi-bell-fill text-secondary';
+                          
+                          return (
+                            <div 
+                              key={notif.id} 
+                              className={`notification-item ${!notif.is_read ? 'unread' : ''}`}
+                              onClick={() => handleNotificationClick(notif)}
+                            >
+                              <div className="d-flex gap-2 align-items-start">
+                                <div className="notification-icon bg-light rounded-3 p-2 d-flex align-items-center justify-content-center" style={{ width: '34px', height: '34px', flexShrink: 0 }}>
+                                  <i className={`bi ${iconClass}`} style={{ fontSize: '1rem' }}></i>
+                                </div>
+                                <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                                  <div className="d-flex justify-content-between align-items-start gap-1">
+                                    <span className="fw-semibold text-dark fs-xs line-clamp-1">{notif.judul}</span>
+                                    {!notif.is_read && <span className="notification-dot" />}
+                                  </div>
+                                  <p className="text-muted mb-1 fs-xxs line-clamp-2" style={{ lineHeight: '1.4' }}>{notif.pesan}</p>
+                                  <span className="text-muted fs-xxs opacity-70">
+                                    {new Date(notif.created_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button className={`btn btn-sm rounded-circle me-3 ${theme === 'dark' ? 'btn-dark' : 'btn-light'}`} onClick={toggleTheme} title="Ganti Tema" style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <i className={`bi ${theme === 'dark' ? 'bi-sun-fill' : 'bi-moon-stars'}`}></i>
             </button>
             <span className="fs-sm text-muted d-none d-sm-inline">

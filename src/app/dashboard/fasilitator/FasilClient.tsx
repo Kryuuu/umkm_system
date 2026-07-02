@@ -177,7 +177,7 @@ export default function FasilClient({ fasilitator, allFasilitator, user, domisil
                 </div>
             </div>
 
-            {user.role === 'admin' && (
+            {user.role === 'Admin' && (
             <div className="panel">
                 <div className="panel-header d-flex justify-content-between align-items-center">
                     <h5><i className="bi bi-people"></i> Daftar Fasilitator</h5>
@@ -209,7 +209,7 @@ export default function FasilClient({ fasilitator, allFasilitator, user, domisil
                                     <td>{f.domisili || '-'}</td>
                                     <td>{f.no_telpon || '-'}</td>
                                     <td>{f.email || '-'}</td>
-                                    <td><span className={`badge-status ${f.role === 'admin' ? 'badge-siap-pameran' : 'badge-naik-kelas'}`}>{f.role === 'admin' ? 'Administrator' : 'Fasilitator'}</span></td>
+                                    <td><span className={`badge-status ${f.role === 'Admin' ? 'badge-siap-pameran' : 'badge-naik-kelas'}`}>{f.role === 'Admin' ? 'Admin' : 'Staff'}</span></td>
                                     <td>
                                         {f.id !== user.id ? (
                                         <button onClick={() => confirmDelete(f.id)} className="btn btn-link text-danger p-0" title="Hapus Fasilitator">
@@ -262,8 +262,8 @@ export default function FasilClient({ fasilitator, allFasilitator, user, domisil
                                     <div className="form-group-custom">
                                         <label>Role</label>
                                         <select name="role" className="form-control form-control-custom">
-                                            <option value="fasilitator">Fasilitator</option>
-                                            <option value="admin">Administrator</option>
+                                            <option value="Staff">Staff</option>
+                                            <option value="Admin">Admin</option>
                                         </select>
                                     </div>
                                 </div>

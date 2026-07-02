@@ -17,6 +17,18 @@ async function checkAuth() {
   const token = cookieStore.get("auth_token")?.value;
   if (!token) throw new Error("Unauthorized");
   const { payload } = await jwtVerify(token, secretKey);
+  
+  // Normalize role to prevent stale session cookies
+  let normalizedRole = payload.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  payload.role = normalizedRole;
+
   return payload as any;
 }
 
@@ -25,7 +37,7 @@ export async function createMonitoringAction(formData: FormData) {
     const user = await checkAuth();
 
     const rawUmkmId = formData.get("umkm_id");
-    const umkmId = user.role === "umkm" ? (user.umkm_id || user.id) : parseInt(rawUmkmId as string);
+    const umkmId = user.role === "Mitra" ? (user.umkm_id || user.id) : parseInt(rawUmkmId as string);
 
     const periode = formData.get("periode") as string; // format: "m|YYYY", e.g. "5|2026"
     if (!periode) return { success: false, message: "Periode wajib diisi" };

@@ -13,7 +13,7 @@ async function seed() {
       no_telpon: '081234567890',
       agama: 'Islam',
       email: 'admin@rumahbumn.id',
-      role: 'admin'
+      role: 'Admin Staff'
     }
   ]).select();
 

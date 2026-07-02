@@ -31,9 +31,15 @@ export async function loginAction(formData: FormData) {
   if (fasilData) {
     const isMatch = await bcrypt.compare(password, fasilData.password);
     if (isMatch) {
+      let mappedRole = fasilData.role;
+      if (fasilData.role === 'admin' || fasilData.role === 'Admin Staff') {
+        mappedRole = 'Admin';
+      } else if (fasilData.role === 'fasilitator' || fasilData.role === 'Mitra' || fasilData.role === 'Staff') {
+        mappedRole = 'Staff';
+      }
       await createSession({
         id: fasilData.id,
-        role: fasilData.role, // 'admin' atau 'fasilitator'
+        role: mappedRole,
         username: fasilData.username,
         name: fasilData.nickname
       });
@@ -55,7 +61,7 @@ export async function loginAction(formData: FormData) {
     if (isMatch) {
       await createSession({
         id: umkmData.id,
-        role: "umkm",
+        role: "Mitra",
         username: umkmData.username,
         name: umkmData.nama_umkm
       });

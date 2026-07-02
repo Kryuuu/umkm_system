@@ -205,7 +205,7 @@ export default function ProdukClient({ produkList, umkmList, user, activeUmkmId 
               <p className="text-muted fs-sm mb-0">Kelola data produk UMKM</p>
           </div>
           <div className="d-flex gap-2">
-              {user.role !== 'umkm' && (
+              {user.role !== 'Mitra' && (
               <Link href="/dashboard/produk" className="btn-outline-custom">
                   <i className="bi bi-arrow-left"></i> Kembali
               </Link>
@@ -240,7 +240,7 @@ export default function ProdukClient({ produkList, umkmList, user, activeUmkmId 
                                       <input
                                           type="text"
                                           className="form-control form-control-custom bg-light"
-                                          value={umkmList.find(u => u.id === activeUmkmId)?.nama_umkm || (user.role === 'umkm' ? user.name : "")}
+                                          value={umkmList.find(u => u.id === activeUmkmId)?.nama_umkm || (user.role === 'Mitra' ? user.name : "")}
                                           readOnly
                                       />
                                   </>
@@ -306,7 +306,7 @@ export default function ProdukClient({ produkList, umkmList, user, activeUmkmId 
                                       <input
                                           type="text"
                                           className="form-control form-control-custom bg-light"
-                                          value={umkmList.find(u => u.id === activeUmkmId)?.nama_umkm || (user.role === 'umkm' ? user.name : "")}
+                                          value={umkmList.find(u => u.id === activeUmkmId)?.nama_umkm || (user.role === 'Mitra' ? user.name : "")}
                                           readOnly
                                       />
                                   </>

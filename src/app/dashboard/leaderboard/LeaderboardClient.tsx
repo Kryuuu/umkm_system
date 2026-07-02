@@ -79,7 +79,7 @@ export default function LeaderboardClient({ leaderboard, user }: { leaderboard: 
               <h5 className="fw-bold mb-1">Leaderboard UMKM</h5>
               <p className="text-muted fs-sm mb-0">Ranking UMKM berdasarkan skor usaha</p>
           </div>
-          {user.role !== 'umkm' && (
+          {user.role !== 'Mitra' && (
           <form onSubmit={handleAnalyzeAll} style={{display:'inline'}}>
               <button type="submit" className="btn-success-custom"><i className="bi bi-cpu"></i> Analisis Semua UMKM</button>
           </form>
@@ -106,7 +106,7 @@ export default function LeaderboardClient({ leaderboard, user }: { leaderboard: 
                               <div className="text-center"><div className="fw-800" style={{fontSize:'1.5rem'}}>{u.total_produk || 0}</div><div className="fs-xs text-muted">PRODUK</div></div>
                           </div>
                           <span className={`badge-status ${statusClass}`}>{u.status_usaha}</span>
-                          {user.role !== 'umkm' && (
+                          {user.role !== 'Mitra' && (
                           <form onSubmit={(e) => handleAnalyzeSingle(e, u.id)} className="mt-3">
                               <input type="hidden" name="umkm_id" value={u.id} />
                               <button type="submit" className="btn-outline-custom" style={{padding:'6px 12px', fontSize:'0.75rem'}}><i className="bi bi-cpu"></i> Re-Analisis</button>
@@ -138,7 +138,7 @@ export default function LeaderboardClient({ leaderboard, user }: { leaderboard: 
                               <td className="fw-bold text-success">Rp {formatNumber(u.total_omzet || 0)}</td>
                               <td>{u.total_produk || 0}</td>
                               <td>
-                                  {user.role === 'umkm' && u.id !== (user.umkm_id || user.id) ? (
+                                  {user.role === 'Mitra' && u.id !== (user.umkm_id || user.id) ? (
                                   <a href="#" onClick={(e) => { e.preventDefault(); window.Swal.fire({icon: 'error', title: 'Akses Dibatasi!', text: 'Anda tidak memiliki hak untuk melihat detail analisis dari UMKM lain.', confirmButtonText: 'Mengerti'}); }} className="text-decoration-none" title="Terkunci">
                                       <strong className="text-secondary bg-secondary bg-opacity-10 px-2 py-1 rounded">{formatNumber(u.skor_usaha || 0)} <i className="bi bi-lock-fill text-muted" style={{fontSize:'0.75rem'}}></i></strong>
                                   </a>

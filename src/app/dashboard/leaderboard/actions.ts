@@ -17,7 +17,19 @@ async function checkAuth() {
   const token = cookieStore.get("auth_token")?.value;
   if (!token) throw new Error("Unauthorized");
   const { payload } = await jwtVerify(token, secretKey);
-  if (payload.role === "umkm") throw new Error("Unauthorized");
+  
+  // Normalize role
+  let normalizedRole = payload.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  payload.role = normalizedRole;
+
+  if (payload.role === "Mitra") throw new Error("Unauthorized");
   return payload;
 }
 

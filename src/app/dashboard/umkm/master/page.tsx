@@ -23,7 +23,7 @@ export default async function MasterUMKMPage() {
     redirect("/");
   }
 
-  if (user.role === 'umkm') {
+  if (user.role === 'Mitra') {
     redirect("/dashboard");
   }
 

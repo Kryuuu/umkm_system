@@ -86,17 +86,17 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
                 <div className="card-body py-2 px-3">
                   <div className="d-flex justify-content-between align-items-center mb-1">
                     <small className="fw-bold me-2">
-                      {msg.pengirim_role === "umkm" && (
+                      {msg.pengirim_role === "Mitra" && (
                         <>
-                          <i className="bi bi-shop"></i> {msg.nama_umkm || "UMKM"}
+                          <i className="bi bi-shop"></i> {msg.nama_umkm || "Mitra"}
                         </>
                       )}
-                      {msg.pengirim_role === "fasilitator" && (
+                      {msg.pengirim_role === "Staff" && (
                         <>
-                          <i className="bi bi-person-badge"></i> Fasilitator
+                          <i className="bi bi-person-badge"></i> Staff
                         </>
                       )}
-                      {msg.pengirim_role === "admin" && (
+                      {msg.pengirim_role === "Admin" && (
                         <>
                           <i className="bi bi-shield-check"></i> Admin
                         </>

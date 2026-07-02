@@ -18,6 +18,18 @@ export default async function DashboardLayout({
   let user: any = null;
   try {
     const { payload } = await jwtVerify(token, secretKey);
+    
+    // Normalize role to prevent stale session cookies
+    let normalizedRole = payload.role;
+    if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+      normalizedRole = 'Admin';
+    } else if (normalizedRole === 'fasilitator') {
+      normalizedRole = 'Staff';
+    } else if (normalizedRole === 'umkm') {
+      normalizedRole = 'Mitra';
+    }
+    payload.role = normalizedRole;
+    
     user = payload;
   } catch (err) {
     redirect("/");

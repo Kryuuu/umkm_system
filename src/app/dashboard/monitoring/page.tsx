@@ -29,13 +29,13 @@ export default async function MonitoringPage({
     redirect("/");
   }
 
-  const isUmkmUser = user.role === "umkm";
+  const isUmkmUser = user.role === "Mitra";
   const activeUmkmId = isUmkmUser ? (user.umkm_id || user.id) : (umkm_id ? parseInt(umkm_id) : null);
 
   // For Admin & Facilitator: if no umkm_id is selected, show UMKM Selection Screen
   if (!isUmkmUser && !activeUmkmId) {
     let umkmListQuery = supabaseAdmin.from("umkm").select("id, nama_umkm, nama_pemilik");
-    if (user.role === "fasilitator") {
+    if (user.role === "Staff") {
       umkmListQuery = umkmListQuery.ilike("domisili", `%${user.domisili || ""}%`);
     }
     const { data: umkmList } = await umkmListQuery;
@@ -53,7 +53,7 @@ export default async function MonitoringPage({
   let umkmListPromise: any = Promise.resolve({ data: [] as any[] });
   if (!isUmkmUser) {
     let query = supabaseAdmin.from("umkm").select("id, nama_umkm, nama_pemilik");
-    if (user.role === "fasilitator") {
+    if (user.role === "Staff") {
       query = query.ilike("domisili", `%${user.domisili || ""}%`);
     }
     umkmListPromise = query.then(res => res as any);

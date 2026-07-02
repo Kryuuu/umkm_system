@@ -16,6 +16,18 @@ async function getUser() {
   const token = cookieStore.get("auth_token")?.value;
   if (!token) throw new Error("Unauthorized");
   const { payload } = await jwtVerify(token, secretKey);
+  
+  // Normalize role
+  let normalizedRole = payload.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  payload.role = normalizedRole;
+
   return payload as any;
 }
 
@@ -24,7 +36,7 @@ export async function generateAiCurriculumAction(umkmId: number) {
     const user = await getUser();
     
     // Security check
-    if (user.role === "umkm" && user.umkm_id !== umkmId && user.id !== umkmId) {
+    if (user.role === "Mitra" && user.umkm_id !== umkmId && user.id !== umkmId) {
       return { success: false, message: "Unauthorized access to this UMKM" };
     }
 

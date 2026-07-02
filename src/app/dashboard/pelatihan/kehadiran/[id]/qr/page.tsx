@@ -28,7 +28,7 @@ export default async function QrPage({ params }: { params: Promise<{ id: string 
   }
 
   // Only admins or facilitators can view presence QR
-  if (user.role === "umkm") {
+  if (user.role === "Mitra") {
     redirect("/dashboard");
   }
 

@@ -28,13 +28,54 @@ export default function KonsultasiClient({
 
   const confirmDelete = async (e: any, id: number) => {
     e.preventDefault();
-    if (typeof window !== "undefined" && window.confirm('Yakin ingin menghapus riwayat chat ini? Semua pesan dalam thread ini akan terhapus.')) {
+    if (typeof window !== "undefined" && (window as any).Swal) {
+      (window as any).Swal.fire({
+        title: 'Hapus Riwayat Chat?',
+        text: 'Semua pesan dalam thread ini akan terhapus secara permanen!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        customClass: {
+          popup: 'rounded-4'
+        }
+      }).then(async (result: any) => {
+        if (result.isConfirmed) {
+          const res = await deleteKonsultasi(id);
+          if (res.success) {
+            (window as any).Swal.fire({
+              title: 'Berhasil!',
+              text: 'Riwayat chat telah dihapus.',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false,
+              customClass: {
+                popup: 'rounded-4'
+              }
+            });
+          } else {
+            (window as any).Swal.fire({
+              title: 'Gagal!',
+              text: 'Gagal menghapus: ' + res.message,
+              icon: 'error',
+              customClass: {
+                popup: 'rounded-4'
+              }
+            });
+          }
+        }
+      });
+    } else {
+      if (typeof window !== "undefined" && window.confirm('Yakin ingin menghapus riwayat chat ini? Semua pesan dalam thread ini akan terhapus.')) {
         const res = await deleteKonsultasi(id);
         if (res.success) {
             setAlertInfo({ type: 'success', message: "Riwayat chat berhasil dihapus." });
         } else {
             setAlertInfo({ type: 'danger', message: "Gagal menghapus: " + res.message });
         }
+      }
     }
   };
 
@@ -79,7 +120,7 @@ export default function KonsultasiClient({
                   <p className="text-muted mb-0">Tanya jawab antara UMKM dan Mentor/Fasilitator</p>
               </div>
               <div className="d-flex gap-2">
-                  {!isConversationsList && user.role !== 'umkm' && (
+                  {!isConversationsList && user.role !== 'Mitra' && (
                   <Link href="/dashboard/konsultasi" className="btn btn-outline-secondary rounded-pill">
                       <i className="bi bi-arrow-left"></i> Kembali
                   </Link>
@@ -158,9 +199,9 @@ export default function KonsultasiClient({
                                   <div className="d-flex w-100 justify-content-between align-items-start gap-3">
                                       <Link href={`/dashboard/konsultasi/thread/${thread.id}`} className="flex-grow-1 text-decoration-none text-dark d-block">
                                           <div className="d-flex align-items-center gap-2 mb-1">
-                                              {thread.pengirim_role === 'umkm' && <span className="badge bg-info rounded-pill"><i className="bi bi-shop"></i> UMKM</span>}
-                                              {thread.pengirim_role === 'fasilitator' && <span className="badge bg-warning text-dark rounded-pill"><i className="bi bi-person-badge"></i> Fasilitator</span>}
-                                              {thread.pengirim_role === 'admin' && <span className="badge bg-danger rounded-pill"><i className="bi bi-shield-check"></i> Admin</span>}
+                                              {thread.pengirim_role === 'Mitra' && <span className="badge bg-info rounded-pill"><i className="bi bi-shop"></i> Mitra</span>}
+                                              {thread.pengirim_role === 'Staff' && <span className="badge bg-warning text-dark rounded-pill"><i className="bi bi-person-badge"></i> Staff</span>}
+                                              {thread.pengirim_role === 'Admin' && <span className="badge bg-danger rounded-pill"><i className="bi bi-shield-check"></i> Admin</span>}
                                               <strong>{thread.nama_umkm || 'Unknown'}</strong>
                                           </div>
                                           <h6 className="mb-1 fw-bold">{thread.subjek}</h6>
@@ -194,7 +235,7 @@ export default function KonsultasiClient({
                           <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
                       </div>
                       <div className="modal-body">
-                          {user.role !== 'umkm' && (
+                          {user.role !== 'Mitra' && (
                           <div className="mb-3">
                               <label className="form-label fw-semibold">UMKM Terkait</label>
                               <select name="umkm_id" className="form-select" required>

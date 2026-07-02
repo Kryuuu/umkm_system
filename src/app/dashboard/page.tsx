@@ -25,7 +25,7 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const isAdmin = user.role === 'admin' || user.role === 'fasilitator';
+  const isAdmin = user.role === 'Admin' || user.role === 'Staff';
 
   // Fetch statistics and datasets in parallel based on user role
   let totalUmkm = 0;

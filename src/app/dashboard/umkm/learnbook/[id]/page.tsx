@@ -35,7 +35,7 @@ export default async function LearnbookPage({
   }
 
   // Security check: UMKM user can only view their own learnbook
-  if (user.role === "umkm" && user.umkm_id !== umkmId && user.id !== umkmId) {
+  if (user.role === "Mitra" && user.umkm_id !== umkmId && user.id !== umkmId) {
     redirect("/dashboard");
   }
 
