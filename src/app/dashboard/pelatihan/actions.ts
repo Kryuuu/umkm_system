@@ -24,6 +24,27 @@ export async function createPelatihan(formData: FormData) {
 
     if (error) return { success: false, message: error.message };
 
+    // Broadcast notification to all UMKM (Mitra) users
+    try {
+      const { data: allUmkms } = await supabaseAdmin.from('umkm').select('id');
+      if (allUmkms && allUmkms.length > 0) {
+        const formattedDate = new Date(rawData.tanggal as string).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        const notifications = allUmkms.map(u => ({
+          target_role: 'Mitra',
+          target_id: u.id,
+          tipe: 'pelatihan',
+          judul: 'Undangan Pelatihan Baru 📅',
+          pesan: `Ada pelatihan baru "${rawData.nama_pelatihan}" oleh ${rawData.pemateri} di ${rawData.lokasi} pada ${formattedDate}. Silakan berhadir!`,
+          is_read: false
+        }));
+        
+        await supabaseAdmin.from('notifikasi').insert(notifications);
+      }
+    } catch (notifErr) {
+      console.error("Failed to broadcast training notifications:", notifErr);
+      // We don't fail the training creation just because notifications failed
+    }
+
     revalidatePath("/dashboard/pelatihan");
     return { success: true };
   } catch (err: any) {

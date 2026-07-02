@@ -59,6 +59,8 @@ export default function DashboardLayoutWrapper({
       window.location.href = '/dashboard/konsultasi';
     } else if (notif.tipe === 'naik_kelas') {
       window.location.href = `/dashboard/umkm/analisis/${notif.target_id}`;
+    } else if (notif.tipe === 'pelatihan') {
+      window.location.href = '/dashboard/pelatihan';
     }
   };
 
