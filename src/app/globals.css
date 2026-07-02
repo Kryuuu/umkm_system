@@ -1342,8 +1342,8 @@ select.form-control-custom {
 .border { border-color: var(--border-color); }
 .border-top { border-top-color: var(--border-color); }
 .border-bottom { border-bottom-color: var(--border-color); }
-.border-start { border-start-color: var(--border-color); }
-.border-end { border-end-color: var(--border-color); }
+.border-start { border-left-color: var(--border-color); }
+.border-end { border-right-color: var(--border-color); }
 
 .fw-800 { font-weight: 800 !important; }
 .fs-sm { font-size: 0.8125rem !important; }
