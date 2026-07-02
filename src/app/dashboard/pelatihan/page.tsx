@@ -23,6 +23,28 @@ export default async function PelatihanPage() {
     redirect("/");
   }
 
+  // Normalize role to prevent stale session cookies
+  let normalizedRole = user.role;
+  if (normalizedRole === 'admin' || normalizedRole === 'Admin Staff') {
+    normalizedRole = 'Admin';
+  } else if (normalizedRole === 'fasilitator') {
+    normalizedRole = 'Staff';
+  } else if (normalizedRole === 'umkm') {
+    normalizedRole = 'Mitra';
+  }
+  user.role = normalizedRole;
+
+  // Mark all pelatihan notifications for this user as read
+  if (user.role === "Mitra") {
+    const myUmkmId = user.umkm_id || user.id;
+    await supabaseAdmin
+      .from("notifikasi")
+      .update({ is_read: true })
+      .eq("target_role", "Mitra")
+      .eq("target_id", myUmkmId)
+      .eq("tipe", "pelatihan");
+  }
+
   const { data: pelatihanList } = await supabaseAdmin.from('pelatihan').select('*').order('tanggal', { ascending: false });
 
   return <PelatihanClient pelatihanList={pelatihanList || []} user={user} />;

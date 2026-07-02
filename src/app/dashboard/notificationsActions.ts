@@ -39,6 +39,7 @@ export async function getNotificationsAction() {
     let query = supabaseAdmin
       .from("notifikasi")
       .select("*")
+      .eq("is_read", false)
       .order("created_at", { ascending: false })
       .limit(15);
 

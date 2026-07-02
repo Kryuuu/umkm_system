@@ -48,9 +48,7 @@ export default function DashboardLayoutWrapper({
   const handleNotificationClick = async (notif: any) => {
     if (!notif.is_read) {
       await markNotificationAsReadAction(notif.id);
-      setNotifications(prev =>
-        prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n)
-      );
+      setNotifications(prev => prev.filter(n => n.id !== notif.id));
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
     setShowNotifications(false);

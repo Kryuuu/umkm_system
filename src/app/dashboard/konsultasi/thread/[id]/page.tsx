@@ -74,6 +74,31 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
     .or(`id.eq.${threadId},parent_id.eq.${threadId}`)
     .neq("pengirim_role", user.role);
 
+  // Mark all chat notifications for this user as read
+  if (user.role === "Mitra") {
+    const myUmkmId = user.umkm_id || user.id;
+    await supabaseAdmin
+      .from("notifikasi")
+      .update({ is_read: true })
+      .eq("target_role", "Mitra")
+      .eq("target_id", myUmkmId)
+      .eq("tipe", "chat");
+  } else if (user.role === "Staff") {
+    await supabaseAdmin
+      .from("notifikasi")
+      .update({ is_read: true })
+      .eq("target_role", "Staff")
+      .eq("target_id", user.id)
+      .eq("tipe", "chat");
+  } else if (user.role === "Admin") {
+    await supabaseAdmin
+      .from("notifikasi")
+      .update({ is_read: true })
+      .eq("target_role", "Admin")
+      .eq("target_id", user.id)
+      .eq("tipe", "chat");
+  }
+
   // Fetch all messages in the thread
   const { data: messagesRaw } = await supabaseAdmin
     .from("konsultasi")

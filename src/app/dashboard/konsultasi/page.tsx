@@ -40,6 +40,31 @@ export default async function KonsultasiPage({
   }
   user.role = normalizedRole;
 
+  // Mark all chat notifications for this user as read
+  if (user.role === "Mitra") {
+    const myUmkmId = user.umkm_id || user.id;
+    await supabaseAdmin
+      .from("notifikasi")
+      .update({ is_read: true })
+      .eq("target_role", "Mitra")
+      .eq("target_id", myUmkmId)
+      .eq("tipe", "chat");
+  } else if (user.role === "Staff") {
+    await supabaseAdmin
+      .from("notifikasi")
+      .update({ is_read: true })
+      .eq("target_role", "Staff")
+      .eq("target_id", user.id)
+      .eq("tipe", "chat");
+  } else if (user.role === "Admin") {
+    await supabaseAdmin
+      .from("notifikasi")
+      .update({ is_read: true })
+      .eq("target_role", "Admin")
+      .eq("target_id", user.id)
+      .eq("tipe", "chat");
+  }
+
   // Fetch list of UMKM for selector
   let umkmListQuery = supabaseAdmin.from("umkm").select("id, nama_umkm, nama_pemilik");
   if (user.role === "Staff") {
