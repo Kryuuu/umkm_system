@@ -162,14 +162,18 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
                   ${showAksi ? `
                   <td>
                       <div class="d-flex gap-1">
-                          <button class="btn-success-custom btn-kehadiran" data-id="${p.id}" style="padding:6px 10px; font-size:0.75rem" title="Kehadiran">
+                          <button class="btn-success-custom btn-kehadiran" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="Kehadiran">
                               <i class="bi bi-clipboard-check"></i>
                           </button>
-                          <button class="btn-qr-code" data-id="${p.id}" style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; border-radius: 4px; padding: 6px 10px; font-size: 0.75rem" title="QR Code Live Presenter">
+                          <button class="btn-qr-code" data-id="${p.id}" style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="QR Code Live Presenter">
                               <i class="bi bi-qr-code"></i>
                           </button>
-                          <button class="btn-warning-custom btn-edit" data-index="${idx}" title="Edit"><i class="bi bi-pencil"></i></button>
-                          <button class="btn-danger-custom btn-delete" data-id="${p.id}" title="Hapus"><i class="bi bi-trash"></i></button>
+                          <button class="btn-warning-custom btn-edit" data-index="${idx}" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="Edit">
+                              <i class="bi bi-pencil"></i>
+                          </button>
+                          <button class="btn-danger-custom btn-delete" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="Hapus">
+                              <i class="bi bi-trash"></i>
+                          </button>
                       </div>
                   </td>
                   ` : ''}
