@@ -350,7 +350,14 @@ export default function DashboardLayoutWrapper({
                 <div className={`nav-submenu ${isLaporanActive || laporanExpanded ? 'show' : ''}`} id="laporanSubmenu">
                   <Link href="/dashboard/laporan/fasilitator" className={`nav-item ${isActive('/dashboard/laporan/fasilitator')}`}><i className="bi bi-dot"></i> Kinerja Staff</Link>
                   <Link href="/dashboard/laporan/umkm" className={`nav-item ${isActive('/dashboard/laporan/umkm')}`}><i className="bi bi-dot"></i> UMKM Binaan</Link>
+                  <Link href="/dashboard/laporan/produk" className={`nav-item ${isActive('/dashboard/laporan/produk')}`}><i className="bi bi-dot"></i> Produk UMKM</Link>
+                  <Link href="/dashboard/laporan/perkembangan" className={`nav-item ${isActive('/dashboard/laporan/perkembangan')}`}><i className="bi bi-dot"></i> Perkembangan</Link>
+                  <Link href="/dashboard/laporan/pelatihan" className={`nav-item ${isActive('/dashboard/laporan/pelatihan')}`}><i className="bi bi-dot"></i> Pelatihan</Link>
+                  <Link href="/dashboard/laporan/pendampingan" className={`nav-item ${isActive('/dashboard/laporan/pendampingan')}`}><i className="bi bi-dot"></i> Pendampingan</Link>
+                  <Link href="/dashboard/laporan/kehadiran" className={`nav-item ${isActive('/dashboard/laporan/kehadiran')}`}><i className="bi bi-dot"></i> Kehadiran</Link>
+                  <Link href="/dashboard/laporan/penjualan" className={`nav-item ${isActive('/dashboard/laporan/penjualan')}`}><i className="bi bi-dot"></i> Penjualan</Link>
                   <Link href="/dashboard/laporan/statistik" className={`nav-item ${isActive('/dashboard/laporan/statistik')}`}><i className="bi bi-dot"></i> Statistik</Link>
+                  <Link href="/dashboard/laporan/evaluasi" className={`nav-item ${isActive('/dashboard/laporan/evaluasi')}`}><i className="bi bi-dot"></i> Evaluasi Program</Link>
                 </div>
               </>
             )}
