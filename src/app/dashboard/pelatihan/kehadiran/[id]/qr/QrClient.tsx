@@ -2,16 +2,22 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getPelatihanQrTokenAction, generateQrTokenAction, getKehadiranStatsAction } from "../../../kehadiranActions";
+import { manualCodeFromToken } from "@/lib/attendance-token";
 
 export default function QrClient({ pelatihan }: { pelatihan: any }) {
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [stats, setStats] = useState({ totalUmkm: 0, totalHadir: 0, recent: [] as any[] });
   
   const currentTokenRef = useRef<string | null>(null);
-  currentTokenRef.current = qrToken;
 
   const lastCheckedIdRef = useRef<number | null>(null);
+  const generatingTokenRef = useRef(false);
+
+  useEffect(() => {
+    currentTokenRef.current = qrToken;
+  }, [qrToken]);
 
   // Play a browser-synthesized chime sound
   const playChime = () => {
@@ -39,9 +45,17 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
   };
 
   const handleGenerateQr = async () => {
-    const res = await generateQrTokenAction(pelatihan.id);
-    if (res.success && res.qrToken) {
-      setQrToken(res.qrToken);
+    if (generatingTokenRef.current) return;
+    generatingTokenRef.current = true;
+    setGenerating(true);
+    try {
+      const res = await generateQrTokenAction(pelatihan.id);
+      if (res.success && res.qrToken) {
+        setQrToken(res.qrToken);
+      }
+    } finally {
+      generatingTokenRef.current = false;
+      setGenerating(false);
     }
   };
 
@@ -83,7 +97,10 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
       // 1. Poll token
       const tokenRes = await getPelatihanQrTokenAction(pelatihan.id);
       if (tokenRes.success && tokenRes.qrToken) {
-        if (tokenRes.qrToken !== currentTokenRef.current) {
+        const isExpired = tokenRes.qrExpiresAt && new Date(tokenRes.qrExpiresAt) <= new Date();
+        if (isExpired) {
+          await handleGenerateQr();
+        } else if (tokenRes.qrToken !== currentTokenRef.current) {
           setQrToken(tokenRes.qrToken);
         }
       }
@@ -120,6 +137,7 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
   };
 
   const percentage = stats.totalUmkm > 0 ? Math.round((stats.totalHadir / stats.totalUmkm) * 100) : 0;
+  const manualCode = manualCodeFromToken(qrToken);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -138,11 +156,13 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
           z-index: 999999;
           background: linear-gradient(135deg, #0b0f19 0%, #0f172a 50%, #1e1b4b 100%);
           color: white;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
+          padding: 2rem 0;
           font-family: 'Inter', sans-serif;
         }
 
@@ -172,6 +192,7 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
 
         .presenter-card {
           position: relative;
+          margin: auto 0;
           background: rgba(15, 23, 42, 0.65);
           backdrop-filter: blur(24px);
           -webkit-backdrop-filter: blur(24px);
@@ -192,7 +213,7 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
           border-radius: 24px;
           display: inline-block;
           box-shadow: 0 0 35px rgba(168, 85, 247, 0.25);
-          margin-bottom: 2rem;
+          margin-bottom: 1.25rem;
           border: 4px solid transparent;
           background-clip: padding-box;
           transition: transform 0.3s ease;
@@ -266,6 +287,51 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
           letter-spacing: 0.5px;
         }
 
+        .manual-code-card {
+          width: min(360px, 100%);
+          margin: 0 auto 1.75rem;
+          padding: 12px 18px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.045);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .manual-code-label {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          margin-bottom: 5px;
+          color: rgba(255, 255, 255, 0.48);
+          font-size: 0.65rem;
+          font-weight: 750;
+          letter-spacing: 0.12em;
+        }
+
+        .manual-code-value {
+          color: #fff;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: clamp(1.45rem, 5vw, 2rem);
+          font-weight: 850;
+          letter-spacing: 0.22em;
+          line-height: 1.2;
+          text-shadow: 0 0 18px rgba(192, 132, 252, 0.45);
+          animation: codeChanged 0.35s ease-out;
+        }
+
+        .manual-code-hint {
+          display: block;
+          margin-top: 5px;
+          color: rgba(255, 255, 255, 0.38);
+          font-size: 0.64rem;
+        }
+
+        @keyframes codeChanged {
+          from { opacity: 0; transform: translateY(4px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         .recent-item {
           animation: fadeInUp 0.5s ease forwards;
           background: rgba(255, 255, 255, 0.04);
@@ -329,6 +395,12 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
             )}
           </div>
 
+          <div className="manual-code-card">
+            <div className="manual-code-label"><i className="bi bi-key-fill" /> KODE ABSENSI MANUAL</div>
+            <div className="manual-code-value" key={manualCode}>{loading || generating ? "--------" : manualCode || "--------"}</div>
+            <span className="manual-code-hint">QR dan kode ini otomatis berganti setelah absensi berhasil.</span>
+          </div>
+
           {/* Stats Section */}
           <div className="px-3 mb-4">
             <div className="d-flex justify-content-between align-items-end mb-2">
@@ -366,10 +438,10 @@ export default function QrClient({ pelatihan }: { pelatihan: any }) {
           <div className="d-flex justify-content-center gap-3 mt-2">
             <button 
               onClick={handleGenerateQr}
-              disabled={loading}
+              disabled={loading || generating}
               className="btn btn-sm btn-outline-light rounded-pill px-3 py-2 fs-xs border-white border-opacity-10 text-white-50"
             >
-              <i className="bi bi-arrow-clockwise me-1"></i> Regenerasi QR Manual
+              <i className={`bi ${generating ? "bi-arrow-repeat" : "bi-arrow-clockwise"} me-1`}></i> {generating ? "Mengganti Kode..." : "Regenerasi QR & Kode"}
             </button>
             <button 
               onClick={handleClose}

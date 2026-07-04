@@ -9,6 +9,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "UMKM Monitor - Rumah BUMN",
   description: "Sistem Informasi Manajemen UMKM Rumah BUMN",
+  icons: {
+    icon: "/rumah-bumn-icon.png",
+    apple: "/rumah-bumn-icon.png",
+  },
 };
 
 export default function RootLayout({

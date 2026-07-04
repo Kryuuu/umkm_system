@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { loginAction } from "./actions";
+
+const LOGIN_STEP_COUNT = 5;
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -21,19 +24,11 @@ export default function LoginPage() {
   ];
 
   useEffect(() => {
-    if (showLoadingOverlay) {
-      const interval = setInterval(() => {
-        setLoadingStep((prev) => {
-          if (prev < steps.length - 1) {
-            return prev + 1;
-          }
-          return prev;
-        });
-      }, 700);
-      return () => clearInterval(interval);
-    } else {
-      setLoadingStep(0);
-    }
+    if (!showLoadingOverlay) return;
+    const interval = setInterval(() => {
+      setLoadingStep((prev) => prev < LOGIN_STEP_COUNT - 1 ? prev + 1 : prev);
+    }, 700);
+    return () => clearInterval(interval);
   }, [showLoadingOverlay]);
 
   async function handleSubmit(formData: FormData) {
@@ -46,6 +41,7 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else if (result?.success) {
+      setLoadingStep(0);
       setShowLoadingOverlay(true);
       // Wait for animation steps before actual redirect
       setTimeout(() => {
@@ -156,7 +152,7 @@ export default function LoginPage() {
           <div className="loading-logo-container">
             <div className="loading-spinner-ring"></div>
             <div className="loading-logo-glow">
-              <i className="bi bi-building"></i>
+              <Image src="/rumah-bumn-icon.png" alt="Rumah BUMN" width={256} height={256} priority />
             </div>
           </div>
 
@@ -178,7 +174,7 @@ export default function LoginPage() {
         <div className="login-card">
           <div className="logo-section">
             <div className="logo-icon">
-              <i className="bi bi-building"></i>
+              <Image src="/rumah-bumn-icon.png" alt="Rumah BUMN" width={256} height={256} priority />
             </div>
             <h2>UMKM Monitor</h2>
             <p className="subtitle">Sistem Informasi Pendampingan & Monitoring UMKM</p>
@@ -194,12 +190,20 @@ export default function LoginPage() {
           <form action={handleSubmit}>
             <div className="login-input-group">
               <i className="bi bi-person-fill input-icon" style={{ color: "#a5b4fc", background: "none", border: "none" }}></i>
-              <input type="text" name="username" className="form-control" placeholder="Username" required autoComplete="off" />
+              <input type="text" name="username" className="form-control" placeholder="Username" required autoComplete="username" />
             </div>
             <div className="login-input-group">
               <i className="bi bi-lock-fill input-icon" style={{ color: "#a5b4fc", background: "none", border: "none" }}></i>
-              <input type="password" name="password" className="form-control" placeholder="Password" required />
+              <input type="password" name="password" className="form-control" placeholder="Password" required autoComplete="current-password" />
             </div>
+            <label className="remember-login">
+              <input type="checkbox" name="rememberMe" />
+              <span className="remember-check" aria-hidden="true"><i className="bi bi-check" /></span>
+              <span>
+                <strong>Ingat saya</strong>
+                <small>Tetap masuk selama 30 hari</small>
+              </span>
+            </label>
             <button type="submit" className="btn-login" disabled={loading}>
               <i className="bi bi-box-arrow-in-right me-2"></i>
               {loading ? "Memproses..." : "Masuk ke Sistem"}

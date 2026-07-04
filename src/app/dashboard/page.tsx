@@ -12,7 +12,8 @@ const supabaseAdmin = createClient(
 );
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "rahasia-umkm-super-aman-12345");
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
+  const accessDenied = (await searchParams).access === "denied";
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   if (!token) redirect("/");
@@ -191,6 +192,12 @@ export default async function DashboardPage() {
 
   return (
     <>
+      {accessDenied && (
+        <div className="alert alert-warning d-flex align-items-center gap-2" role="alert">
+          <i className="bi bi-shield-lock-fill" />
+          Modul tersebut belum diizinkan untuk akun Anda. Hubungi Admin jika akses diperlukan.
+        </div>
+      )}
       {isAdmin ? (
         <>
           <div className="panel border-0 shadow-sm rounded-4 mb-4" style={{ background: "linear-gradient(135deg, #4f46e5, #4338ca)", color: "white", position: "relative", overflow: "hidden" }}>

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { canAccess, type StaffPermission } from "@/lib/permissions";
 import { 
   getNotificationsAction, 
   markNotificationAsReadAction, 
@@ -122,6 +124,7 @@ export default function DashboardLayoutWrapper({
 
   const isActive = (path: string) => pathname === path ? "active" : "";
   const isLaporanActive = pathname.startsWith('/dashboard/laporan') ? "active" : "";
+  const hasAccess = (permission: StaffPermission) => canAccess(user.role, user.permissions, permission);
 
   return (
     <>
@@ -245,7 +248,7 @@ export default function DashboardLayoutWrapper({
       <aside className={`sidebar ${sidebarActive ? 'active' : ''}`} id="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <i className="bi bi-building"></i>
+            <Image src="/rumah-bumn-icon.png" alt="Rumah BUMN" width={256} height={256} priority />
           </div>
           <div className="sidebar-brand">
             <h4>UMKM Monitor</h4>
@@ -268,47 +271,42 @@ export default function DashboardLayoutWrapper({
               </Link>
             )}
             
-            {user.role === 'Staff' && (
-              <Link href="/dashboard/fasilitator/profile" className={`nav-item ${pathname === '/dashboard/fasilitator/profile' ? 'active' : ''}`}>
-                <i className="bi bi-person-circle"></i>
-                <span>Edit Profil</span>
-              </Link>
-            )}
-
-            {user.role !== 'Mitra' && (
+            {user.role !== 'Mitra' && hasAccess('umkm_master') && (
               <Link href="/dashboard/umkm/master" className={`nav-item ${pathname.includes('/umkm/master') ? 'active' : ''}`}>
                 <i className="bi bi-database-fill"></i>
                 <span>Master UMKM</span>
               </Link>
             )}
 
-            <Link href="/dashboard/umkm" className={`nav-item ${pathname === '/dashboard/umkm' ? 'active' : ''}`}>
-              <i className="bi bi-shop"></i>
-              <span>{user.role === 'Mitra' ? 'Info UMKM' : 'Data UMKM'}</span>
-            </Link>
+            {(user.role === 'Mitra' || hasAccess('umkm_data')) && (
+              <Link href="/dashboard/umkm" className={`nav-item ${pathname === '/dashboard/umkm' ? 'active' : ''}`}>
+                <i className="bi bi-shop"></i>
+                <span>{user.role === 'Mitra' ? 'Info UMKM' : 'Data UMKM'}</span>
+              </Link>
+            )}
           </div>
 
           <div className="nav-section">
             <div className="nav-section-title">Operasional</div>
-            <Link href="/dashboard/produk" className={`nav-item ${isActive('/dashboard/produk')}`}>
+            {(user.role === 'Mitra' || hasAccess('produk')) && <Link href="/dashboard/produk" className={`nav-item ${isActive('/dashboard/produk')}`}>
               <i className="bi bi-box-seam-fill"></i>
               <span>Produk UMKM</span>
-            </Link>
-            <Link href="/dashboard/monitoring" className={`nav-item ${isActive('/dashboard/monitoring')}`}>
+            </Link>}
+            {(user.role === 'Mitra' || hasAccess('monitoring')) && <Link href="/dashboard/monitoring" className={`nav-item ${isActive('/dashboard/monitoring')}`}>
               <i className="bi bi-graph-up-arrow"></i>
               <span>Perkembangan Usaha</span>
-            </Link>
+            </Link>}
             
-            {(user.role === 'Admin' || user.role === 'Staff') ? (
+            {user.role !== 'Mitra' ? (
               <>
-                <Link href="/dashboard/pelatihan" className={`nav-item ${isActive('/dashboard/pelatihan')}`}>
+                {hasAccess('pelatihan') && <Link href="/dashboard/pelatihan" className={`nav-item ${isActive('/dashboard/pelatihan')}`}>
                   <i className="bi bi-mortarboard-fill"></i>
                   <span>Pelatihan UMKM</span>
-                </Link>
-                <Link href="/dashboard/pendampingan" className={`nav-item ${isActive('/dashboard/pendampingan')}`}>
+                </Link>}
+                {hasAccess('pendampingan') && <Link href="/dashboard/pendampingan" className={`nav-item ${isActive('/dashboard/pendampingan')}`}>
                   <i className="bi bi-people-fill"></i>
                   <span>Pendampingan</span>
-                </Link>
+                </Link>}
               </>
             ) : (
               <>
@@ -323,22 +321,22 @@ export default function DashboardLayoutWrapper({
               </>
             )}
 
-            <Link href="/dashboard/konsultasi" className={`nav-item ${isActive('/dashboard/konsultasi')}`}>
+            {(user.role === 'Mitra' || hasAccess('konsultasi')) && <Link href="/dashboard/konsultasi" className={`nav-item ${isActive('/dashboard/konsultasi')}`}>
               <i className="bi bi-chat-dots-fill"></i>
               <span>Konsultasi</span>
-            </Link>
-            <Link href="/dashboard/penjualan" className={`nav-item ${isActive('/dashboard/penjualan')}`}>
+            </Link>}
+            {(user.role === 'Mitra' || hasAccess('penjualan')) && <Link href="/dashboard/penjualan" className={`nav-item ${isActive('/dashboard/penjualan')}`}>
               <i className="bi bi-cart-fill"></i>
               <span>Data Penjualan</span>
-            </Link>
+            </Link>}
           </div>
 
           <div className="nav-section">
             <div className="nav-section-title">Analisis</div>
-            <Link href="/dashboard/leaderboard" className={`nav-item ${isActive('/dashboard/leaderboard')}`}>
+            {(user.role === 'Mitra' || hasAccess('leaderboard')) && <Link href="/dashboard/leaderboard" className={`nav-item ${isActive('/dashboard/leaderboard')}`}>
               <i className="bi bi-trophy-fill"></i>
               <span>Leaderboard</span>
-            </Link>
+            </Link>}
 
             {user.role === 'Admin' && (
               <>
@@ -372,7 +370,7 @@ export default function DashboardLayoutWrapper({
               <span>{user.role === 'Admin' ? 'Admin' : user.role === 'Staff' ? 'Staff' : 'Mitra'}</span>
             </div>
           </div>
-          {user.role === 'Admin' && (
+          {user.role !== 'Mitra' && (
             <Link href="/dashboard/fasilitator/profile" className="nav-item mb-1 py-1" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', opacity: 0.8 }}>
               <i className="bi bi-gear-fill"></i>
               <span>Setelan Profil</span>

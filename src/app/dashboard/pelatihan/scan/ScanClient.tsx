@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Html5Qrcode } from "html5-qrcode";
 import { verifyQrTokenAndRecordPresence } from "../kehadiranActions";
+import { MANUAL_ATTENDANCE_CODE_LENGTH, normalizeAttendanceInput } from "@/lib/attendance-token";
 
 export default function ScanClient({ user }: { user: any }) {
   const router = useRouter();
@@ -194,7 +195,7 @@ export default function ScanClient({ user }: { user: any }) {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualToken.trim()) return;
-    await handleVerification(manualToken.trim());
+    await handleVerification(normalizeAttendanceInput(manualToken));
   };
 
   useEffect(() => {
@@ -444,7 +445,7 @@ export default function ScanClient({ user }: { user: any }) {
             {activeTab === "manual" && (
               <form onSubmit={handleManualSubmit} className="text-start p-2 animate-fade-in">
                 <div className="form-group mb-4">
-                  <label className="fs-xs fw-bold text-white-50 mb-2">Token Absensi Pelatihan</label>
+                  <label className="fs-xs fw-bold text-white-50 mb-2">Kode Absensi Manual</label>
                   <div className="position-relative">
                     <span className="position-absolute start-0 top-50 translate-middle-y ms-3 text-white-50">
                       <i className="bi bi-key-fill fs-5"></i>
@@ -452,9 +453,13 @@ export default function ScanClient({ user }: { user: any }) {
                     <input
                       type="text"
                       className="form-control form-control-custom text-center text-white bg-black bg-opacity-40 border-white border-opacity-10 py-3 rounded-3"
-                      placeholder="Masukkan 36-karakter token..."
+                      placeholder="Contoh: A1B2C3D4"
                       value={manualToken}
-                      onChange={(e) => setManualToken(e.target.value)}
+                      onChange={(e) => setManualToken(e.target.value.toUpperCase().replace(/\s+/g, ""))}
+                      maxLength={36}
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      spellCheck={false}
                       style={{ 
                         fontSize: "0.95rem", 
                         letterSpacing: "1px", 
@@ -465,7 +470,7 @@ export default function ScanClient({ user }: { user: any }) {
                     />
                   </div>
                   <small className="text-white-50 fs-xs mt-2.5 d-block text-center bg-black bg-opacity-20 py-2 rounded-2">
-                    💡 *Gunakan token cadangan ini jika kamera perangkat Anda bermasalah.
+                    <i className="bi bi-lightbulb-fill me-1 text-warning" /> Masukkan kode {MANUAL_ATTENDANCE_CODE_LENGTH} karakter di bawah QR. UUID lama juga tetap didukung.
                   </small>
                 </div>
                 <button

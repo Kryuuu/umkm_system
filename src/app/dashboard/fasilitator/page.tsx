@@ -1,52 +1,44 @@
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
 import { redirect } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-import FasilClient from "./FasilClient";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "rahasia-umkm-super-aman-12345");
+import FasilClient, { type StaffAccount } from "./FasilClient";
+import { getAuthUser, supabaseAdmin } from "@/lib/server-auth";
+import { sanitizePermissions } from "@/lib/permissions";
+import { DOMISILI_KALSEL } from "@/lib/locations";
 
 export default async function FasilitatorPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-  if (!token) redirect("/");
-
-  let user: any = null;
+  let user;
   try {
-    const { payload } = await jwtVerify(token, secretKey);
-    user = payload;
-  } catch (err) {
+    user = await getAuthUser();
+  } catch {
     redirect("/");
   }
+  if (user.role !== "Admin") redirect("/dashboard");
 
-  // Fetch current user data
-  const { data: fasilitator } = await supabaseAdmin.from('fasilitator').select('*').eq('id', user.id).single();
-  if (!fasilitator) {
-    // maybe umkm trying to access? Redirect.
-    redirect("/dashboard");
-  }
+  const { data, error } = await supabaseAdmin
+    .from("fasilitator")
+    .select("*")
+    .order("id", { ascending: true });
+  if (error) throw new Error(`Gagal mengambil data staff: ${error.message}`);
 
-  let allFasilitator = [];
-  if (user.role === 'Admin') {
-    const { data } = await supabaseAdmin.from('fasilitator').select('*').order('id', { ascending: true });
-    allFasilitator = data || [];
-  }
+  const staff: StaffAccount[] = (data || []).map((item) => ({
+    id: item.id,
+    username: item.username,
+    nickname: item.nickname,
+    domisili: item.domisili,
+    no_telpon: item.no_telpon,
+    agama: item.agama,
+    email: item.email,
+    role: item.role === "Admin" ? "Admin" : "Staff",
+    permissions: sanitizePermissions(item.permissions),
+    created_at: item.created_at,
+  }));
+  const permissionsReady = (data || []).every((item) => Object.prototype.hasOwnProperty.call(item, "permissions"));
 
-  const DOMISILI_KALSEL = [
-      'Kota Banjarmasin', 'Kota Banjarbaru', 'Kabupaten Banjar', 'Kabupaten Barito Kuala',
-      'Kabupaten Tapin', 'Kabupaten Hulu Sungai Selatan', 'Kabupaten Hulu Sungai Tengah',
-      'Kabupaten Hulu Sungai Utara', 'Kabupaten Balangan', 'Kabupaten Tabalong',
-      'Kabupaten Tanah Laut', 'Kabupaten Tanah Bumbu', 'Kabupaten Kotabaru'
-  ];
-
-  return <FasilClient 
-    fasilitator={fasilitator} 
-    allFasilitator={allFasilitator} 
-    user={user} 
-    domisiliKalsel={DOMISILI_KALSEL}
-  />;
+  return (
+    <FasilClient
+      staff={staff}
+      currentUserId={user.id}
+      domisiliKalsel={[...DOMISILI_KALSEL]}
+      permissionsReady={permissionsReady}
+    />
+  );
 }

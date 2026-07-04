@@ -25,3 +25,19 @@ UPDATE notifikasi SET target_role = 'Mitra' WHERE target_role = 'umkm';
 ALTER TABLE fasilitator ADD CONSTRAINT fasilitator_role_check CHECK (role IN ('Admin', 'Staff'));
 ALTER TABLE konsultasi ADD CONSTRAINT konsultasi_pengirim_role_check CHECK (pengirim_role IN ('Admin', 'Staff', 'Mitra'));
 ALTER TABLE notifikasi ADD CONSTRAINT notifikasi_target_role_check CHECK (target_role IN ('Admin', 'Staff', 'Mitra'));
+
+-- 4. Hak akses modular untuk akun Staff
+ALTER TABLE fasilitator
+ADD COLUMN IF NOT EXISTS permissions TEXT[] NOT NULL DEFAULT ARRAY[
+  'umkm_master', 'umkm_data', 'produk', 'monitoring', 'pelatihan',
+  'pendampingan', 'konsultasi', 'penjualan', 'leaderboard'
+]::TEXT[];
+
+-- Admin selalu dikendalikan oleh role dan tidak dibatasi daftar permission.
+-- Staff lama diberi akses yang sebelumnya sudah mereka miliki agar migrasi tidak memutus pekerjaan.
+UPDATE fasilitator
+SET permissions = ARRAY[
+  'umkm_master', 'umkm_data', 'produk', 'monitoring', 'pelatihan',
+  'pendampingan', 'konsultasi', 'penjualan', 'leaderboard'
+]::TEXT[]
+WHERE role = 'Staff' AND (permissions IS NULL OR cardinality(permissions) = 0);

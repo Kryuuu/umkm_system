@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import crypto from "crypto";
+import { isManualAttendanceCode, manualCodeFromToken, normalizeAttendanceInput } from "@/lib/attendance-token";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://msajpzdstvevpxvgywva.supabase.co",
@@ -135,24 +136,46 @@ export async function generateQrTokenAction(pelatihanId: number) {
 export async function verifyQrTokenAndRecordPresence(qrToken: string) {
   try {
     const umkmId = await getActiveUmkmId();
+    const submittedToken = normalizeAttendanceInput(qrToken);
+    const submittedCode = submittedToken.toUpperCase();
     
-    // 1. Find the pelatihan with this token
-    const { data: pelatihan, error } = await supabaseAdmin
-      .from("pelatihan")
-      .select("id, nama_pelatihan, qr_expires_at")
-      .eq("qr_token", qrToken)
-      .maybeSingle();
+    // 1. QR memakai UUID lengkap; input manual memakai 8 karakter pertama
+    // dari token yang sama sehingga keduanya selalu berputar bersama.
+    let pelatihan: { id: number; nama_pelatihan: string; qr_expires_at: string | null } | null = null;
+    let lookupError: { message: string } | null = null;
+
+    if (isManualAttendanceCode(submittedCode)) {
+      const { data: activeTrainings, error } = await supabaseAdmin
+        .from("pelatihan")
+        .select("id, nama_pelatihan, qr_token, qr_expires_at")
+        .not("qr_token", "is", null);
+      lookupError = error;
+      const matched = activeTrainings?.find((item) => manualCodeFromToken(item.qr_token) === submittedCode);
+      pelatihan = matched ? {
+        id: matched.id,
+        nama_pelatihan: matched.nama_pelatihan,
+        qr_expires_at: matched.qr_expires_at,
+      } : null;
+    } else {
+      const { data, error } = await supabaseAdmin
+        .from("pelatihan")
+        .select("id, nama_pelatihan, qr_expires_at")
+        .eq("qr_token", submittedToken.toLowerCase())
+        .maybeSingle();
+      pelatihan = data;
+      lookupError = error;
+    }
       
-    if (error || !pelatihan) {
+    if (lookupError || !pelatihan) {
       return { 
         success: false, 
-        message: "QR Code tidak valid, kedaluwarsa, atau sudah pernah digunakan oleh orang lain. Pastikan Anda melakukan scan langsung pada layar proyektor pemateri (bukan hasil screenshot / kiriman foto)!" 
+        message: "QR Code atau kode manual tidak valid, kedaluwarsa, atau sudah berganti. Gunakan kode terbaru yang tampil pada layar pelatihan."
       };
     }
     
     // 2. Check expiration
     if (pelatihan.qr_expires_at && new Date(pelatihan.qr_expires_at) < new Date()) {
-      return { success: false, message: "QR Code sudah kedaluwarsa. Silakan scan QR Code terbaru di layar." };
+      return { success: false, message: "Kode absensi sudah kedaluwarsa. Gunakan QR atau kode manual terbaru di layar." };
     }
     
     const pelatihanId = pelatihan.id;
@@ -264,5 +287,3 @@ export async function getKehadiranListAction(pelatihanId: number) {
     return { success: false, message: err.message, presence: [] };
   }
 }
-
-

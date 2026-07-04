@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import Image from "next/image";
 
 export type ReportType =
   | "fasilitator"
@@ -347,7 +348,9 @@ export default function ReportClient({ type, payload, generatedAt, errorMessage 
       <header className="report-header-view">
         <div className="report-letterhead">
           <div className="report-heading">
-            <div className="report-logo"><i className="bi bi-building" /></div>
+            <div className="report-logo">
+              <Image src="/rumah-bumn.png" alt="Logo Rumah BUMN" width={400} height={400} priority />
+            </div>
             <h3>{meta.title}</h3>
           </div>
           <p className="report-generated-at">Rumah BUMN · Dicetak pada {generatedAt}</p>
