@@ -56,6 +56,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   };
 
   if (isAdmin) {
+    const thirtyDaysAgoAdmin = new Date();
+    thirtyDaysAgoAdmin.setDate(thirtyDaysAgoAdmin.getDate() - 30);
+    const thirtyDaysAgoAdminStr = thirtyDaysAgoAdmin.toISOString().split('T')[0];
+
     const [
       totalUmkmRes,
       totalProdukRes,
@@ -63,7 +67,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       totalPendampinganRes,
       monitoringRes,
       produkRes,
-      leaderboardRes
+      leaderboardRes,
+      upcomingPelatihanRes
     ] = await Promise.all([
       supabaseAdmin.from('umkm').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('produk').select('*', { count: 'exact', head: true }),
@@ -71,7 +76,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       supabaseAdmin.from('pendampingan').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('monitoring').select('umkm_id, omzet, jumlah_tenaga_kerja, jumlah_pelanggan, bulan, tahun, umkm:umkm_id(nama_umkm)'),
       supabaseAdmin.from('produk').select('umkm_id, kategori_produk'),
-      supabaseAdmin.from('umkm').select('id, nama_umkm, nama_pemilik, skor_usaha, status_usaha').order('skor_usaha', { ascending: false })
+      supabaseAdmin.from('umkm').select('id, nama_umkm, nama_pemilik, skor_usaha, status_usaha').order('skor_usaha', { ascending: false }),
+      supabaseAdmin.from('pelatihan').select('*').gte('tanggal', thirtyDaysAgoAdminStr).order('tanggal', { ascending: true }).limit(5)
     ]);
 
     totalUmkm = totalUmkmRes.count || 0;
@@ -82,6 +88,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     const allMonitoring = monitoringRes.data || [];
     const allProduk = produkRes.data || [];
     const leaderboardRaw = leaderboardRes.data || [];
+    upcomingPelatihan = upcomingPelatihanRes.data || [];
 
     // Sum all omzet
     allMonitoring.forEach(m => {
@@ -281,7 +288,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             </div>
           </div>
           
-          <AdminCharts chartData={chartData} kategoriData={kategoriData} growthData={growthData} leaderboard={leaderboard} />
+          <AdminCharts chartData={chartData} kategoriData={kategoriData} growthData={growthData} leaderboard={leaderboard} upcomingPelatihan={upcomingPelatihan} />
         </>
       ) : (
         <>

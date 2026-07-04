@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
+import Chart from "chart.js/auto";
 
 export type ReportType =
   | "fasilitator"
@@ -261,48 +262,318 @@ function AttendanceSummary({ payload, printLimit }: { payload: ReportPayload; pr
 
 function StatisticsReport({ payload }: { payload: ReportPayload }) {
   const summary = payload.summary || {};
-  const summaryRows = [
-    ["Total UMKM Binaan", `${number(summary.totalUmkm)} Mitra`],
-    ["Total Produk Terdaftar", `${number(summary.totalProduk)} Produk`],
-    ["Total Kegiatan Pelatihan", `${number(summary.totalPelatihan)} Sesi`],
-    ["Total Pendampingan", `${number(summary.totalPendampingan)} Sesi`],
-    ["Akumulasi Omzet", rupiah(summary.totalOmzet)],
-  ];
+  const statusDistribution = (summary.statusDistribution as any[]) || [];
+  const omzetTrend = (summary.omzetTrend as any[]) || [];
+
+  const kategoriRef = useRef<HTMLCanvasElement>(null);
+  const statusRef = useRef<HTMLCanvasElement>(null);
+  const omzetTrendRef = useRef<HTMLCanvasElement>(null);
+  const skorRef = useRef<HTMLCanvasElement>(null);
+
+  const chartColors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
+
+  const formatOmzet = (v: number) => {
+    if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.', ',') + ' JT';
+    if (v >= 1000) return (v / 1000).toFixed(0) + ' RB';
+    return String(v);
+  };
+
+  useEffect(() => {
+    let kategoriChart: Chart | null = null;
+    let statusChart: Chart | null = null;
+    let omzetChart: Chart | null = null;
+    let skorChart: Chart | null = null;
+
+    const createCharts = (theme: string) => {
+      if (kategoriChart) kategoriChart.destroy();
+      if (statusChart) statusChart.destroy();
+      if (omzetChart) omzetChart.destroy();
+      if (skorChart) skorChart.destroy();
+
+      const tickColor = theme === 'dark' ? '#cbd5e1' : '#64748b';
+      const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+      const legendColor = theme === 'dark' ? '#f8fafc' : '#1e293b';
+
+      // Doughnut: Kategori Produk
+      if (kategoriRef.current && (payload.categories || []).length > 0) {
+        kategoriChart = new Chart(kategoriRef.current, {
+          type: 'doughnut',
+          data: {
+            labels: (payload.categories || []).map(c => String(c.kategori_produk)),
+            datasets: [{
+              data: (payload.categories || []).map(c => Number(c.total)),
+              backgroundColor: chartColors.slice(0, (payload.categories || []).length),
+              borderWidth: 2,
+              borderColor: theme === 'dark' ? '#1e293b' : '#ffffff',
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { boxWidth: 10, usePointStyle: true, color: legendColor, padding: 12, font: { size: 12 } },
+              },
+            },
+          },
+        });
+      }
+
+      // Pie: Status Usaha
+      if (statusRef.current && statusDistribution.length > 0) {
+        const statusColors: Record<string, string> = {
+          'Pemula': '#ef4444',
+          'Berkembang': '#f59e0b',
+          'Naik Kelas': '#10b981',
+          'Siap Pameran': '#4f46e5',
+          'Go Modern': '#ec4899',
+          'Go Digital': '#06b6d4',
+          'Go Global': '#0ea5e9',
+        };
+        statusChart = new Chart(statusRef.current, {
+          type: 'pie',
+          data: {
+            labels: statusDistribution.map(s => s.status),
+            datasets: [{
+              data: statusDistribution.map(s => s.total),
+              backgroundColor: statusDistribution.map((s, i) => statusColors[s.status] || chartColors[i % chartColors.length]),
+              borderWidth: 2,
+              borderColor: theme === 'dark' ? '#1e293b' : '#ffffff',
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { boxWidth: 10, usePointStyle: true, color: legendColor, padding: 12, font: { size: 12 } },
+              },
+            },
+          },
+        });
+      }
+
+      // Bar: Tren Omzet Bulanan
+      if (omzetTrendRef.current && omzetTrend.length > 0) {
+        omzetChart = new Chart(omzetTrendRef.current, {
+          type: 'bar',
+          data: {
+            labels: omzetTrend.map(t => t.bulan),
+            datasets: [{
+              label: 'Omzet',
+              data: omzetTrend.map(t => t.omzet),
+              backgroundColor: 'rgba(79, 70, 229, 0.8)',
+              hoverBackgroundColor: 'rgba(79, 70, 229, 1)',
+              borderRadius: 8,
+              borderSkipped: false,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => 'Rp ' + Number(ctx.raw).toLocaleString('id-ID'),
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor },
+                border: { dash: [4, 4] },
+                ticks: { callback: (v) => formatOmzet(Number(v)), color: tickColor, font: { size: 11 } },
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: { size: 11 } },
+              },
+            },
+          },
+        });
+      }
+
+      // Horizontal Bar: Skor Top 10 UMKM
+      if (skorRef.current && payload.rows.length > 0) {
+        const top10 = payload.rows.slice(0, 10);
+        skorChart = new Chart(skorRef.current, {
+          type: 'bar',
+          data: {
+            labels: top10.map(r => String(r.nama_umkm)),
+            datasets: [{
+              label: 'Skor',
+              data: top10.map(r => Number(r.skor_usaha || 0)),
+              backgroundColor: top10.map((r) => {
+                const skor = Number(r.skor_usaha || 0);
+                if (skor >= 80) return 'rgba(16, 185, 129, 0.85)';
+                if (skor >= 60) return 'rgba(245, 158, 11, 0.85)';
+                return 'rgba(239, 68, 68, 0.85)';
+              }),
+              borderRadius: 6,
+              borderSkipped: false,
+              barPercentage: 0.7,
+            }],
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `Skor: ${ctx.raw}`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                max: 100,
+                grid: { color: gridColor },
+                border: { dash: [4, 4] },
+                ticks: { color: tickColor, font: { size: 11 } },
+              },
+              y: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: { size: 11 } },
+              },
+            },
+          },
+        });
+      }
+    };
+
+    const initialTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    createCharts(initialTheme);
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-theme') {
+          createCharts(document.documentElement.getAttribute('data-theme') || 'light');
+        }
+      });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    return () => {
+      if (kategoriChart) kategoriChart.destroy();
+      if (statusChart) statusChart.destroy();
+      if (omzetChart) omzetChart.destroy();
+      if (skorChart) skorChart.destroy();
+      observer.disconnect();
+    };
+  }, [payload]);
+
   return (
-    <div className="row g-4 report-stat-grid">
-      <div className="col-md-6">
-        <div className="panel report-panel h-100">
-          <div className="panel-header"><h5><i className="bi bi-info-circle me-2" />Ringkasan Utama</h5></div>
-          <div className="panel-body p-0">
-            <table className="table-custom report-table"><tbody>{summaryRows.map(([label, value]) => (
-              <tr key={label}><td><strong>{label}</strong></td><td className="text-end fw-bold">{value}</td></tr>
-            ))}</tbody></table>
+    <div className="report-stat-grid">
+      {/* Charts: Kategori Doughnut + Status Pie */}
+      <div className="row g-3 mb-4">
+        <div className="col-lg-6">
+          <div className="panel report-panel h-100">
+            <div className="panel-header border-bottom px-3 pt-3 pb-2"><h5 className="fw-bold mb-0" style={{ fontSize: '0.95rem' }}><i className="bi bi-pie-chart-fill text-success me-2" />Distribusi Kategori Produk</h5></div>
+            <div className="panel-body p-3 p-md-4">
+              <div style={{ height: '280px', position: 'relative' }}>
+                {(payload.categories || []).length === 0 ? (
+                  <div className="d-flex align-items-center justify-content-center h-100 text-muted fs-sm">
+                    <div className="text-center"><i className="bi bi-pie-chart d-block fs-2 mb-2 opacity-50" />Belum ada data kategori</div>
+                  </div>
+                ) : (
+                  <canvas ref={kategoriRef}></canvas>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="panel report-panel h-100">
+            <div className="panel-header border-bottom px-3 pt-3 pb-2"><h5 className="fw-bold mb-0" style={{ fontSize: '0.95rem' }}><i className="bi bi-diagram-3-fill text-primary me-2" />Distribusi Status Usaha</h5></div>
+            <div className="panel-body p-3 p-md-4">
+              <div style={{ height: '280px', position: 'relative' }}>
+                {statusDistribution.length === 0 ? (
+                  <div className="d-flex align-items-center justify-content-center h-100 text-muted fs-sm">
+                    <div className="text-center"><i className="bi bi-diagram-3 d-block fs-2 mb-2 opacity-50" />Belum ada data status</div>
+                  </div>
+                ) : (
+                  <canvas ref={statusRef}></canvas>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div className="col-md-6">
-        <div className="panel report-panel h-100">
-          <div className="panel-header"><h5><i className="bi bi-tags me-2" />Kategori Produk</h5></div>
-          <div className="panel-body p-0">
-            <table className="table-custom report-table">
-              <thead><tr><th>Jenis Kategori</th><th className="text-end">Jumlah</th></tr></thead>
-              <tbody>{(payload.categories || []).length ? payload.categories?.map((item) => (
-                <tr key={text(item.kategori_produk)}><td>{text(item.kategori_produk)}</td><td className="text-end fw-bold">{number(item.total)}</td></tr>
-              )) : <EmptyRow colSpan={2} />}</tbody>
-            </table>
+
+      {/* Tren Omzet Bulanan */}
+      <div className="row g-3 mb-4">
+        <div className="col-12">
+          <div className="panel report-panel">
+            <div className="panel-header border-bottom px-3 pt-3 pb-2"><h5 className="fw-bold mb-0" style={{ fontSize: '0.95rem' }}><i className="bi bi-graph-up text-warning me-2" />Tren Omzet Bulanan</h5></div>
+            <div className="panel-body p-3 p-md-4">
+              <div style={{ height: '300px', position: 'relative' }}>
+                {omzetTrend.length === 0 ? (
+                  <div className="d-flex align-items-center justify-content-center h-100 text-muted fs-sm">
+                    <div className="text-center"><i className="bi bi-bar-chart d-block fs-2 mb-2 opacity-50" />Belum ada data monitoring</div>
+                  </div>
+                ) : (
+                  <canvas ref={omzetTrendRef}></canvas>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div className="col-12">
-        <div className="panel report-panel">
-          <div className="panel-header"><h5><i className="bi bi-trophy me-2" />10 UMKM dengan Skor Tertinggi</h5></div>
-          <div className="panel-body p-0">
-            <ReportTable rows={payload.rows} printLimit={10} columns={[
-              { label: "No", className: "text-center report-col-no", render: (_row, index) => index + 1 },
-              { label: "Nama UMKM", render: (row) => <strong>{text(row.nama_umkm)}</strong> },
-              { label: "Status Usaha", render: (row) => <Badge tone={statusTone(row.status_usaha)}>{text(row.status_usaha)}</Badge> },
-              { label: "Skor Performa", className: "text-end", render: (row) => <strong>{number(row.skor_usaha)}</strong> },
-            ]} />
+
+      {/* Perbandingan Skor Top 10 */}
+      <div className="row g-3 mb-4">
+        <div className="col-12">
+          <div className="panel report-panel">
+            <div className="panel-header border-bottom px-3 pt-3 pb-2"><h5 className="fw-bold mb-0" style={{ fontSize: '0.95rem' }}><i className="bi bi-trophy-fill text-warning me-2" />Perbandingan Skor 10 UMKM Terbaik</h5></div>
+            <div className="panel-body p-3 p-md-4">
+              <div style={{ height: Math.max(payload.rows.length * 44, 200) + 'px', position: 'relative' }}>
+                {payload.rows.length === 0 ? (
+                  <div className="d-flex align-items-center justify-content-center h-100 text-muted fs-sm">
+                    <div className="text-center"><i className="bi bi-trophy d-block fs-2 mb-2 opacity-50" />Belum ada data UMKM</div>
+                  </div>
+                ) : (
+                  <canvas ref={skorRef}></canvas>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Table: Kategori + 10 UMKM Skor Tertinggi (print-friendly) */}
+      <div className="row g-3 mb-4">
+        <div className="col-lg-5">
+          <div className="panel report-panel h-100">
+            <div className="panel-header border-bottom px-3 pt-3 pb-2"><h5 className="fw-bold mb-0" style={{ fontSize: '0.95rem' }}><i className="bi bi-tags-fill text-info me-2" />Kategori Produk</h5></div>
+            <div className="panel-body p-0">
+              <table className="table-custom report-table">
+                <thead><tr><th>Jenis Kategori</th><th className="text-end">Jumlah</th></tr></thead>
+                <tbody>{(payload.categories || []).length ? payload.categories?.map((item) => (
+                  <tr key={text(item.kategori_produk)}><td>{text(item.kategori_produk)}</td><td className="text-end fw-bold">{number(item.total)}</td></tr>
+                )) : <EmptyRow colSpan={2} />}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-7">
+          <div className="panel report-panel h-100">
+            <div className="panel-header border-bottom px-3 pt-3 pb-2"><h5 className="fw-bold mb-0" style={{ fontSize: '0.95rem' }}><i className="bi bi-trophy me-2" />10 UMKM Skor Tertinggi</h5></div>
+            <div className="panel-body p-0">
+              <ReportTable rows={payload.rows} printLimit={10} columns={[
+                { label: "No", className: "text-center report-col-no", render: (_row, index) => index + 1 },
+                { label: "Nama UMKM", render: (row) => <strong>{text(row.nama_umkm)}</strong> },
+                { label: "Status", render: (row) => <Badge tone={statusTone(row.status_usaha)}>{text(row.status_usaha)}</Badge> },
+                { label: "Skor", className: "text-end", render: (row) => <strong>{number(row.skor_usaha)}</strong> },
+              ]} />
+            </div>
           </div>
         </div>
       </div>

@@ -2131,7 +2131,7 @@ select.form-control-custom {
         max-width: 100% !important;
     }
 
-    .panel {
+    .panel:not(.report-panel) {
         box-shadow: none !important;
         border: none !important;
         padding: 0 !important;
@@ -2141,7 +2141,7 @@ select.form-control-custom {
         overflow: visible !important;
     }
 
-    .panel-body {
+    .panel-body:not(.report-panel .panel-body) {
         padding: 0 !important;
     }
 
@@ -2473,16 +2473,27 @@ select.form-control-custom {
         background: transparent !important;
     }
 
-    .report-panel .panel-header {
-        padding: 7px 8px !important;
+    .report-panel {
         border: 1px solid #cbd5e1 !important;
-        border-bottom: 0 !important;
+        border-radius: 8px !important;
+        margin-bottom: 12px !important;
+        page-break-inside: avoid !important;
+    }
+
+    .report-panel .panel-header {
+        padding: 8px 12px !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        background: #f8fafc !important;
     }
 
     .report-panel .panel-header h5 {
         margin: 0 !important;
         color: #000 !important;
-        font-size: 8pt !important;
+        font-size: 9pt !important;
+    }
+
+    .report-panel .panel-body {
+        padding: 12px !important;
     }
 
     .report-training-info {
@@ -2500,12 +2511,31 @@ select.form-control-custom {
     }
 
     .report-stat-grid {
-        --bs-gutter-x: 8px !important;
-        --bs-gutter-y: 8px !important;
+        --bs-gutter-x: 12px !important;
+        --bs-gutter-y: 12px !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
     }
 
-    .report-stat-grid .col-md-6 {
+    .report-stat-grid .col-md-6,
+    .report-stat-grid .col-lg-6 {
         width: 50% !important;
+        flex: 0 0 50% !important;
+    }
+    
+    .report-stat-grid .col-lg-5 {
+        width: 41.66666667% !important;
+        flex: 0 0 41.66666667% !important;
+    }
+
+    .report-stat-grid .col-lg-7 {
+        width: 58.33333333% !important;
+        flex: 0 0 58.33333333% !important;
+    }
+    
+    .report-stat-grid .col-12 {
+        width: 100% !important;
+        flex: 0 0 100% !important;
     }
 
     .report-print-footer {

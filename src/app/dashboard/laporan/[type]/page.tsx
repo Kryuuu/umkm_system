@@ -158,7 +158,7 @@ async function getReportData(type: ReportType): Promise<ReportPayload> {
   const [umkmResult, produkResult, monitoringResult, pelatihanResult, pendampinganResult] = await Promise.all([
     supabaseAdmin.from("umkm").select("id, nama_umkm, nama_pemilik, skor_usaha, status_usaha, rekomendasi").order("skor_usaha", { ascending: false }),
     supabaseAdmin.from("produk").select("id, umkm_id, kategori_produk"),
-    supabaseAdmin.from("monitoring").select("id, umkm_id, omzet"),
+    supabaseAdmin.from("monitoring").select("id, umkm_id, omzet, bulan, tahun, jumlah_tenaga_kerja, jumlah_pelanggan"),
     supabaseAdmin.from("pelatihan").select("id"),
     supabaseAdmin.from("pendampingan").select("id"),
   ]);
@@ -178,6 +178,38 @@ async function getReportData(type: ReportType): Promise<ReportPayload> {
     kategoriMap.set(kategori, (kategoriMap.get(kategori) || 0) + 1);
   });
 
+  // Status distribution for pie chart
+  const statusMap = new Map<string, number>();
+  umkm.forEach((row) => {
+    const status = String(row.status_usaha || "Belum Diketahui");
+    statusMap.set(status, (statusMap.get(status) || 0) + 1);
+  });
+  const statusDistribution = Array.from(statusMap, ([status, total]) => ({ status, total }))
+    .sort((a, b) => b.total - a.total);
+
+  // Monthly omzet trend for bar chart
+  const monthToNum: Record<string, number> = {
+    'januari': 1, 'februari': 2, 'maret': 3, 'april': 4, 'mei': 5, 'juni': 6,
+    'juli': 7, 'agustus': 8, 'september': 9, 'oktober': 10, 'november': 11, 'desember': 12,
+  };
+  const periodOmzetMap = new Map<string, { orderKey: number; omzet: number; tk: number; pelanggan: number }>();
+  monitoring.forEach((row) => {
+    const key = `${row.bulan} ${row.tahun}`;
+    const mNum = monthToNum[(String(row.bulan) || '').toLowerCase()] || 0;
+    const orderKey = (Number(row.tahun) * 12) + mNum;
+    const existing = periodOmzetMap.get(key);
+    if (!existing) {
+      periodOmzetMap.set(key, { orderKey, omzet: Number(row.omzet || 0), tk: Number(row.jumlah_tenaga_kerja || 0), pelanggan: Number(row.jumlah_pelanggan || 0) });
+    } else {
+      existing.omzet += Number(row.omzet || 0);
+      existing.tk += Number(row.jumlah_tenaga_kerja || 0);
+      existing.pelanggan += Number(row.jumlah_pelanggan || 0);
+    }
+  });
+  const omzetTrend = Array.from(periodOmzetMap, ([bulan, data]) => ({
+    bulan, orderKey: data.orderKey, omzet: data.omzet, tk: data.tk, pelanggan: data.pelanggan,
+  })).sort((a, b) => a.orderKey - b.orderKey);
+
   return {
     rows: leaderboard.slice(0, 10),
     categories: Array.from(kategoriMap, ([kategori_produk, total]) => ({ kategori_produk, total }))
@@ -188,6 +220,8 @@ async function getReportData(type: ReportType): Promise<ReportPayload> {
       totalPelatihan: (pelatihanResult.data || []).length,
       totalPendampingan: (pendampinganResult.data || []).length,
       totalOmzet: monitoring.reduce((sum, row) => sum + Number(row.omzet || 0), 0),
+      statusDistribution,
+      omzetTrend,
     },
   };
 }

@@ -8,12 +8,14 @@ export default function AdminCharts({
   chartData, 
   kategoriData,
   growthData,
-  leaderboard
+  leaderboard,
+  upcomingPelatihan = []
 }: { 
   chartData: any[];
   kategoriData: any[];
   growthData: any[];
   leaderboard: any[];
+  upcomingPelatihan?: any[];
 }) {
   const omzetRef = useRef<HTMLCanvasElement>(null);
   const kategoriRef = useRef<HTMLCanvasElement>(null);
@@ -224,14 +226,71 @@ export default function AdminCharts({
 
       <div className="row g-4 mb-4">
         <div className="col-lg-6">
-          <div className="panel border-0 shadow-sm rounded-4 h-100">
-            <div className="panel-header border-bottom-0 pt-3 px-3 pt-md-4 px-md-4 pb-2">
-              <h5 className="fw-bold mb-0"><i className="bi bi-bar-chart-line-fill text-warning me-2"></i> Pertumbuhan Skala Usaha (Pekerja & Pelanggan)</h5>
+          <div className="d-flex flex-column gap-4 h-100">
+            <div className="panel border-0 shadow-sm rounded-4">
+              <div className="panel-header border-bottom-0 pt-3 px-3 pt-md-4 px-md-4 pb-2">
+                <h5 className="fw-bold mb-0"><i className="bi bi-bar-chart-line-fill text-warning me-2"></i> Pertumbuhan Skala Usaha (Pekerja & Pelanggan)</h5>
+              </div>
+              <div className="panel-body p-3 p-md-4">
+                <div className="row">
+                  <div className="col-6"><div className="chart-container" style={{height:'250px'}}><canvas ref={tenagaKerjaRef}></canvas></div></div>
+                  <div className="col-6"><div className="chart-container" style={{height:'250px'}}><canvas ref={pelangganRef}></canvas></div></div>
+                </div>
+              </div>
             </div>
-            <div className="panel-body p-3 p-md-4">
-              <div className="row">
-                <div className="col-6"><div className="chart-container" style={{height:'250px'}}><canvas ref={tenagaKerjaRef}></canvas></div></div>
-                <div className="col-6"><div className="chart-container" style={{height:'250px'}}><canvas ref={pelangganRef}></canvas></div></div>
+
+            {/* Jadwal Pelatihan Terdekat */}
+            <div className="panel border-0 shadow-sm rounded-4 flex-grow-1">
+              <div className="panel-header border-bottom-0 pt-3 px-3 pt-md-4 px-md-4 pb-2 d-flex justify-content-between align-items-center">
+                <h5 className="fw-bold mb-0"><i className="bi bi-calendar-event text-info me-2"></i> Jadwal Pelatihan Terdekat</h5>
+                <Link href="/dashboard/pelatihan" className="btn btn-sm btn-outline-info rounded-pill px-3">Semua</Link>
+              </div>
+              <div className="panel-body p-3 p-md-4">
+                {upcomingPelatihan.length === 0 ? (
+                  <div className="text-center text-muted p-4 border rounded-3 fs-sm" style={{ background: 'var(--bg-card)' }}>
+                    <i className="bi bi-calendar-x fs-2 d-block mb-2 opacity-50"></i>
+                    Belum ada jadwal pelatihan terdekat
+                  </div>
+                ) : (
+                  <div className="d-flex flex-column gap-2">
+                    {upcomingPelatihan.map((p) => {
+                      const today = new Date().toISOString().split('T')[0];
+                      const eventDate = p.tanggal;
+                      let statusText = 'Akan Datang';
+                      let statusColor = 'primary';
+                      let statusIcon = 'bi-clock';
+                      if (eventDate < today) {
+                        statusText = 'Selesai';
+                        statusColor = 'success';
+                        statusIcon = 'bi-check-circle-fill';
+                      } else if (eventDate === today) {
+                        statusText = 'Hari Ini';
+                        statusColor = 'warning';
+                        statusIcon = 'bi-broadcast';
+                      }
+                      return (
+                        <div key={p.id} className="d-flex align-items-center gap-3 p-3 rounded-3 border" style={{ transition: 'all 0.2s ease' }}>
+                          <div className={`rounded-3 d-flex flex-column align-items-center justify-content-center flex-shrink-0 text-white`} style={{ width: '52px', height: '52px', background: statusColor === 'primary' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : statusColor === 'warning' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #059669)' }}>
+                            <div className="fw-bold" style={{ fontSize: '1.1rem', lineHeight: 1 }}>{new Date(p.tanggal).getDate()}</div>
+                            <div style={{ fontSize: '0.6rem', textTransform: 'uppercase', fontWeight: 600 }}>{new Date(p.tanggal).toLocaleDateString('id-ID', { month: 'short' })}</div>
+                          </div>
+                          <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                            <h6 className="fw-bold mb-1 text-dark text-truncate" style={{ fontSize: '0.85rem' }}>{p.nama_pelatihan}</h6>
+                            <div className="d-flex align-items-center gap-3 flex-wrap">
+                              <span className="fs-xs text-muted d-flex align-items-center gap-1">
+                                <i className="bi bi-geo-alt-fill text-danger" style={{ fontSize: '0.65rem' }}></i>
+                                <span className="text-truncate" style={{ maxWidth: '120px' }}>{p.lokasi}</span>
+                              </span>
+                              <span className={`badge bg-${statusColor} bg-opacity-10 text-${statusColor} fs-xs rounded-pill px-2 d-flex align-items-center gap-1`}>
+                                <i className={`bi ${statusIcon}`} style={{ fontSize: '0.6rem' }}></i> {statusText}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
