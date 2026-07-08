@@ -108,12 +108,20 @@ export default function ScanClient({ user }: { user: any }) {
   };
 
   const stopScanner = async () => {
-    if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
+    if (html5QrcodeRef.current) {
       try {
-        await html5QrcodeRef.current.stop();
-      } catch (err) {
-        console.error("Gagal menonaktifkan kamera:", err);
+        if (html5QrcodeRef.current.isScanning) {
+          await html5QrcodeRef.current.stop();
+        }
+      } catch (err: any) {
+        // Abaikan error transisi agar tidak memicu error overlay di Next.js Dev Mode
+        if (err && !err.toString().includes("already under transition")) {
+          console.warn("Kamera gagal dimatikan:", err);
+        }
       }
+      try {
+        html5QrcodeRef.current.clear();
+      } catch (e) {} // ignore clear errors
       html5QrcodeRef.current = null;
     }
     setScanning(false);
