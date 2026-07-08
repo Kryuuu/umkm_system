@@ -267,7 +267,7 @@ export default function DashboardLayoutWrapper({
             {user.role === 'Admin' && (
               <Link href="/dashboard/fasilitator" className={`nav-item ${pathname === '/dashboard/fasilitator' ? 'active' : ''}`}>
                 <i className="bi bi-person-badge-fill"></i>
-                <span>Data Staff</span>
+                <span>Data Pengguna</span>
               </Link>
             )}
             
@@ -336,6 +336,10 @@ export default function DashboardLayoutWrapper({
             {(user.role === 'Mitra' || hasAccess('leaderboard')) && <Link href="/dashboard/leaderboard" className={`nav-item ${isActive('/dashboard/leaderboard')}`}>
               <i className="bi bi-trophy-fill"></i>
               <span>Leaderboard</span>
+            </Link>}
+            {user.role !== 'Mitra' && hasAccess('scoring_rules') && <Link href="/dashboard/scoring-rules" className={`nav-item ${isActive('/dashboard/scoring-rules')}`}>
+              <i className="bi bi-sliders2"></i>
+              <span>Aturan Skor</span>
             </Link>}
 
             {user.role === 'Admin' && (
@@ -458,6 +462,16 @@ export default function DashboardLayoutWrapper({
                 -webkit-line-clamp: 2;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
+              }
+              
+              @media (max-width: 576px) {
+                .notification-dropdown {
+                  position: fixed;
+                  top: 60px;
+                  right: 16px;
+                  left: 16px;
+                  width: auto;
+                }
               }
               
               /* Dark Mode Adaptations */

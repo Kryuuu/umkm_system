@@ -8,6 +8,7 @@ export const STAFF_PERMISSIONS = [
   { key: "konsultasi", label: "Konsultasi", description: "Membaca dan membalas konsultasi UMKM.", icon: "bi-chat-dots-fill" },
   { key: "penjualan", label: "Data Penjualan", description: "Melihat dan mengelola transaksi penjualan.", icon: "bi-cart-fill" },
   { key: "leaderboard", label: "Leaderboard", description: "Melihat peringkat dan memperbarui skor UMKM.", icon: "bi-trophy-fill" },
+  { key: "scoring_rules", label: "Aturan Skor", description: "Mengatur bobot dan aturan penilaian leaderboard.", icon: "bi-sliders2" },
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number]["key"];
@@ -44,6 +45,7 @@ const ROUTE_PERMISSIONS: Array<{ prefix: string; permission: StaffPermission }> 
   { prefix: "/dashboard/konsultasi", permission: "konsultasi" },
   { prefix: "/dashboard/penjualan", permission: "penjualan" },
   { prefix: "/dashboard/leaderboard", permission: "leaderboard" },
+  { prefix: "/dashboard/scoring-rules", permission: "scoring_rules" },
 ];
 
 export function permissionForPath(pathname: string) {

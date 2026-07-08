@@ -5,6 +5,64 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Default hardcoded rules as fallback when DB table doesn't exist yet
+const FALLBACK_RULES = {
+  omzet: [
+    { kondisi_min: 25000000, kondisi_max: null, poin: 100 },
+    { kondisi_min: 15000000, kondisi_max: 25000000, poin: 85 },
+    { kondisi_min: 10000000, kondisi_max: 15000000, poin: 70 },
+    { kondisi_min: 5000000, kondisi_max: 10000000, poin: 50 },
+    { kondisi_min: 2000000, kondisi_max: 5000000, poin: 30 },
+    { kondisi_min: 0, kondisi_max: 2000000, poin: 15 },
+  ],
+};
+
+type RuleRow = {
+  kategori: string;
+  kondisi_min: number;
+  kondisi_max: number | null;
+  poin: number;
+  is_active: boolean;
+};
+
+async function fetchScoringRules(): Promise<Record<string, RuleRow[]>> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("scoring_rules")
+      .select("kategori, kondisi_min, kondisi_max, poin, is_active")
+      .eq("is_active", true)
+      .order("kategori")
+      .order("urutan");
+
+    if (error || !data || data.length === 0) {
+      // Table doesn't exist or no data → use fallback
+      return FALLBACK_RULES as any;
+    }
+
+    // Group by kategori
+    const grouped: Record<string, RuleRow[]> = {};
+    for (const rule of data) {
+      if (!grouped[rule.kategori]) grouped[rule.kategori] = [];
+      grouped[rule.kategori].push(rule);
+    }
+    return grouped;
+  } catch {
+    return FALLBACK_RULES as any;
+  }
+}
+
+function matchRule(value: number, rules: RuleRow[]): number {
+  // Rules are ordered by urutan (highest threshold first)
+  for (const rule of rules) {
+    const min = Number(rule.kondisi_min) || 0;
+    const max = rule.kondisi_max != null ? Number(rule.kondisi_max) : null;
+    if (value >= min && (max === null || value < max)) {
+      return Number(rule.poin) || 0;
+    }
+  }
+  return 0;
+}
+
 export async function calculateScore(umkmId: number) {
   try {
     // 1. Fetch UMKM info
@@ -16,66 +74,27 @@ export async function calculateScore(umkmId: number) {
 
     if (umkmErr || !umkm) return { success: false, message: "UMKM tidak ditemukan" };
 
-    // 2. Fetch products
-    const { data: produk } = await supabaseAdmin
-      .from("produk")
-      .select("id")
-      .eq("umkm_id", umkmId);
-
-    const produkCount = produk?.length || 0;
-
-    // 3. Fetch latest monitoring
+    // 2. Fetch latest monitoring (for omzet)
     const { data: monitoring } = await supabaseAdmin
       .from("monitoring")
       .select("*")
       .eq("umkm_id", umkmId)
       .order("tahun", { ascending: false })
-      .order("bulan", { ascending: false }) // Wait, in PG order by month name is alphabetic, but let's assume this gets the latest.
+      .order("bulan", { ascending: false })
       .limit(1);
 
     const latestMonitoring = monitoring && monitoring.length > 0 ? monitoring[0] : null;
 
+    // 3. Fetch dynamic scoring rules from DB
+    const rules = await fetchScoringRules();
+
     let score = 0;
 
-    // 1. Omzet score (max 30)
-    if (latestMonitoring) {
+    // Hitung Skor Hanya Berdasarkan Omzet
+    if (latestMonitoring && rules.omzet) {
       const omzet = latestMonitoring.omzet || 0;
-      if (omzet >= 25000000) score += 30;
-      else if (omzet >= 15000000) score += 25;
-      else if (omzet >= 10000000) score += 20;
-      else if (omzet >= 5000000) score += 15;
-      else if (omzet >= 2000000) score += 10;
-      else score += 5;
+      score += matchRule(omzet, rules.omzet);
     }
-
-    // 2. Product count score (max 20)
-    if (produkCount >= 5) score += 20;
-    else if (produkCount >= 3) score += 15;
-    else if (produkCount >= 2) score += 10;
-    else if (produkCount >= 1) score += 5;
-
-    // 3. Employment score (max 15)
-    if (latestMonitoring) {
-      const tenagaKerja = latestMonitoring.jumlah_tenaga_kerja || 0;
-      if (tenagaKerja >= 8) score += 15;
-      else if (tenagaKerja >= 5) score += 12;
-      else if (tenagaKerja >= 3) score += 8;
-      else if (tenagaKerja >= 1) score += 5;
-    }
-
-    // 4. Customer base score (max 15)
-    if (latestMonitoring) {
-      const pelanggan = latestMonitoring.jumlah_pelanggan || 0;
-      if (pelanggan >= 200) score += 15;
-      else if (pelanggan >= 100) score += 12;
-      else if (pelanggan >= 50) score += 8;
-      else if (pelanggan >= 20) score += 5;
-    }
-
-    // 5. Legality score (max 20)
-    if (umkm.nib) score += 7;
-    if (umkm.sertifikat_halal) score += 7;
-    if (umkm.sertifikat_pirt) score += 6;
 
     // Determine status (Go Modern → Go Digital → Go Online → Go Global)
     const oldStatus = umkm.status_usaha || "";

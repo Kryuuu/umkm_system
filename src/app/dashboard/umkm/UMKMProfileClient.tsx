@@ -24,12 +24,16 @@ export default function UMKMProfileClient({
   umkm,
   produkCount,
   latestMonitoring,
+  isAdmin = false,
+  initialTab = "analisis",
 }: {
   umkm: any;
   produkCount: number;
   latestMonitoring: any;
+  isAdmin?: boolean;
+  initialTab?: "analisis" | "edit";
 }) {
-  const [activeTab, setActiveTab] = useState<"analisis" | "edit">("analisis");
+  const [activeTab, setActiveTab] = useState<"analisis" | "edit">(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const getSwal = () => {
@@ -605,9 +609,11 @@ export default function UMKMProfileClient({
                       <input
                         type="text"
                         name="nama_umkm"
-                        className="form-control form-control-custom bg-light"
+                        className={`form-control form-control-custom ${!isAdmin ? 'bg-secondary bg-opacity-10 text-muted' : 'bg-light'}`}
                         defaultValue={umkm.nama_umkm || ""}
+                        readOnly={!isAdmin}
                         required
+                        title={!isAdmin ? "Hubungi Admin/Fasilitator untuk mengubah data ini" : ""}
                       />
                     </div>
                   </div>
@@ -617,9 +623,11 @@ export default function UMKMProfileClient({
                       <input
                         type="text"
                         name="nama_pemilik"
-                        className="form-control form-control-custom bg-light"
+                        className={`form-control form-control-custom ${!isAdmin ? 'bg-secondary bg-opacity-10 text-muted' : 'bg-light'}`}
                         defaultValue={umkm.nama_pemilik || ""}
+                        readOnly={!isAdmin}
                         required
+                        title={!isAdmin ? "Hubungi Admin/Fasilitator untuk mengubah data ini" : ""}
                       />
                     </div>
                   </div>
@@ -640,8 +648,10 @@ export default function UMKMProfileClient({
                       <input
                         type="email"
                         name="email"
-                        className="form-control form-control-custom bg-light"
+                        className={`form-control form-control-custom ${!isAdmin ? 'bg-secondary bg-opacity-10 text-muted' : 'bg-light'}`}
                         defaultValue={umkm.email || ""}
+                        readOnly={!isAdmin}
+                        title={!isAdmin ? "Hubungi Admin/Fasilitator untuk mengubah data ini" : ""}
                       />
                     </div>
                   </div>
@@ -662,10 +672,12 @@ export default function UMKMProfileClient({
                     <div className="form-group-custom">
                       <label className="form-label fs-sm fw-semibold">Domisili / Kota <span className="text-danger">*</span></label>
                       <select
-                        name="domisili"
-                        className="form-control form-control-custom bg-light"
+                        name={isAdmin ? "domisili" : undefined}
+                        className={`form-control form-control-custom ${!isAdmin ? 'bg-secondary bg-opacity-10 text-muted' : 'bg-light'}`}
                         defaultValue={umkm.domisili || ""}
+                        disabled={!isAdmin}
                         required
+                        title={!isAdmin ? "Hubungi Admin/Fasilitator untuk mengubah data ini" : ""}
                       >
                         <option value="">-- Pilih Kota / Kabupaten --</option>
                         {DOMISILI_KALSEL.map((kota, idx) => (
@@ -674,6 +686,8 @@ export default function UMKMProfileClient({
                           </option>
                         ))}
                       </select>
+                      {/* Hidden input to submit the disabled select value */}
+                      {!isAdmin && <input type="hidden" name="domisili" value={umkm.domisili || ""} />}
                     </div>
                   </div>
                   <div className="col-12">
@@ -681,9 +695,11 @@ export default function UMKMProfileClient({
                       <label className="form-label fs-sm fw-semibold">Alamat Lengkap</label>
                       <textarea
                         name="alamat"
-                        className="form-control form-control-custom bg-light"
+                        className={`form-control form-control-custom ${!isAdmin ? 'bg-secondary bg-opacity-10 text-muted' : 'bg-light'}`}
                         rows={2}
                         defaultValue={umkm.alamat || ""}
+                        readOnly={!isAdmin}
+                        title={!isAdmin ? "Hubungi Admin/Fasilitator untuk mengubah data ini" : ""}
                       ></textarea>
                     </div>
                   </div>

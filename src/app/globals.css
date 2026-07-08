@@ -2550,3 +2550,94 @@ select.form-control-custom {
     }
 }
 
+/* =====================================================
+   MOBILE & IOS OPTIMIZATIONS
+   ===================================================== */
+
+/* 1. Prevent iOS Input Zoom (Requires font-size: 16px min on iOS) */
+@supports (-webkit-touch-callout: none) {
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* 2. Smooth Scrolling for iOS Tables */
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+/* 3. Global Mobile Adjustments */
+@media (max-width: 767.98px) {
+    /* Optimize spacing for mobile */
+    .content-wrapper {
+        padding: 12px 10px calc(12px + env(safe-area-inset-bottom)) !important;
+    }
+    
+    .panel {
+        border-radius: 12px;
+    }
+
+    .panel-header {
+        padding: 14px 16px;
+    }
+
+    .panel-body {
+        padding: 14px 16px;
+    }
+
+    /* Improve Form Layouts on small screens */
+    .form-group-custom {
+        margin-bottom: 16px;
+    }
+
+    /* Optimize Table view for mobile */
+    .table-custom thead th {
+        padding: 10px 12px;
+        font-size: 0.7rem;
+    }
+
+    .table-custom tbody td {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+    }
+
+    /* Modal padding adjustments */
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .modal-header, .modal-footer {
+        padding: 16px;
+    }
+    
+    /* Make buttons touch-friendly */
+    button, .btn, a.nav-item {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Chart responsiveness */
+    .chart-container {
+        height: 280px !important;
+        margin-bottom: 1rem;
+    }
+}
+
+/* 4. Extra small screens (iPhone SE, etc.) */
+@media (max-width: 375px) {
+    .page-title {
+        font-size: 1.1rem;
+    }
+    
+    .btn-outline-custom, .btn-primary-custom, .btn-success-custom, .btn-warning-custom, .btn-danger-custom {
+        padding: 8px 12px;
+        font-size: 0.75rem;
+    }
+}

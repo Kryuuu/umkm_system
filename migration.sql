@@ -41,3 +41,6 @@ SET permissions = ARRAY[
   'pendampingan', 'konsultasi', 'penjualan', 'leaderboard'
 ]::TEXT[]
 WHERE role = 'Staff' AND (permissions IS NULL OR cardinality(permissions) = 0);
+
+-- 5. Tambah kolom ID UMKM manual (seperti project PHP lama: UMKM-001)
+ALTER TABLE umkm ADD COLUMN IF NOT EXISTS id_umkm VARCHAR(50) UNIQUE;

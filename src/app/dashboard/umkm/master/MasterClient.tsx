@@ -128,7 +128,12 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
                       <tbody>
                           {umkmList.map((u, idx) => (
                           <tr key={u.id}>
-                              <td>{idx + 1}</td>
+                              <td>
+                                <div className="d-flex flex-column align-items-start">
+                                  <span>{idx + 1}</span>
+                                  {u.id_umkm && <code className="text-primary mt-1 px-1 bg-primary bg-opacity-10 rounded" style={{fontSize: '0.7rem'}}>{u.id_umkm}</code>}
+                                </div>
+                              </td>
                               <td><strong>{u.username}</strong></td>
                               <td>{u.nama_umkm}</td>
                               <td>{u.nama_pemilik}</td>
@@ -160,33 +165,37 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
                       <div className="modal-body p-4 bg-light">
                           <div className="row">
                               <div className="col-lg-6 pe-lg-4 border-end">
-                                  <h6 className="fw-bold mb-3 text-primary"><i className="bi bi-shield-lock me-2"></i>Informasi Akun</h6>
-                                  <div className="row g-3">
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Username</label><input type="text" name="username" className="form-control form-control-custom" autoComplete="off" required /></div>
-                                      </div>
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Password</label><input type="password" name="password" className="form-control form-control-custom" autoComplete="new-password" required /></div>
-                                      </div>
-                                  </div>
+                                   <h6 className="fw-bold mb-3 text-primary"><i className="bi bi-shield-lock me-2"></i>Informasi UMKM</h6>
+                                   <div className="row g-3">
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>ID UMKM <span className="text-danger">*</span></label><input type="text" name="id_umkm" className="form-control form-control-custom" placeholder="Contoh: UMKM-001" required /><small className="text-muted mt-1 d-block">ID unik untuk identifikasi UMKM (kombinasi huruf dan angka)</small></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Nama UMKM</label><input type="text" name="nama_umkm" className="form-control form-control-custom" required /></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Nama Pemilik</label><input type="text" name="nama_pemilik" className="form-control form-control-custom" required /></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Deskripsi Usaha</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2}></textarea></div>
+                                       </div>
+                                       <div className="col-md-6">
+                                           <div className="form-group-custom"><label>NIK Pemilik</label><input type="text" name="nik" className="form-control form-control-custom" /></div>
+                                       </div>
+                                       <div className="col-md-6">
+                                           <div className="form-group-custom"><label>NIB Usaha</label><input type="text" name="nib" className="form-control form-control-custom" /></div>
+                                       </div>
+                                   </div>
 
-                                  <div className="row g-3">
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Nama UMKM</label><input type="text" name="nama_umkm" className="form-control form-control-custom" required /></div>
-                                      </div>
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Nama Pemilik</label><input type="text" name="nama_pemilik" className="form-control form-control-custom" required /></div>
-                                      </div>
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Deskripsi Usaha</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2}></textarea></div>
-                                      </div>
-                                      <div className="col-md-6">
-                                          <div className="form-group-custom"><label>NIK Pemilik</label><input type="text" name="nik" className="form-control form-control-custom" /></div>
-                                      </div>
-                                      <div className="col-md-6">
-                                          <div className="form-group-custom"><label>NIB Usaha</label><input type="text" name="nib" className="form-control form-control-custom" /></div>
-                                      </div>
-                                  </div>
+                                   <h6 className="fw-bold mt-4 mb-3 text-primary"><i className="bi bi-key me-2"></i>Akun Login</h6>
+                                   <div className="row g-3">
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Username <span className="text-danger">*</span></label><input type="text" name="username" className="form-control form-control-custom" autoComplete="off" required /></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Password <span className="text-danger">*</span></label><input type="password" name="password" className="form-control form-control-custom" autoComplete="new-password" required /></div>
+                                       </div>
+                                   </div>
                               </div>
 
                               <div className="col-lg-6 ps-lg-4 mt-4 mt-lg-0">
@@ -253,33 +262,37 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
                       <div className="modal-body p-4 bg-light">
                           <div className="row">
                               <div className="col-lg-6 pe-lg-4 border-end">
-                                  <h6 className="fw-bold mb-3 text-warning"><i className="bi bi-shield-lock me-2"></i>Informasi Akun</h6>
-                                  <div className="row g-3">
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Username (Tidak bisa diubah)</label><input type="text" className="form-control form-control-custom bg-light" defaultValue={editData?.username || ''} disabled autoComplete="off" /></div>
-                                      </div>
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Password Baru <span className="text-muted fw-normal">(kosongkan jika tidak diubah)</span></label><input type="password" name="password" className="form-control form-control-custom" autoComplete="new-password" /></div>
-                                      </div>
-                                  </div>
+                                   <h6 className="fw-bold mb-3 text-warning"><i className="bi bi-shield-lock me-2"></i>Informasi UMKM</h6>
+                                   <div className="row g-3">
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>ID UMKM (Tidak bisa diubah)</label><input type="text" className="form-control form-control-custom bg-light" defaultValue={editData?.id_umkm || editData?.id || ''} disabled autoComplete="off" /></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Nama UMKM</label><input type="text" name="nama_umkm" className="form-control form-control-custom" required defaultValue={editData?.nama_umkm || ''} /></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Nama Pemilik</label><input type="text" name="nama_pemilik" className="form-control form-control-custom" required defaultValue={editData?.nama_pemilik || ''} /></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Deskripsi Usaha</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2} defaultValue={editData?.deskripsi || ''}></textarea></div>
+                                       </div>
+                                       <div className="col-md-6">
+                                           <div className="form-group-custom"><label>NIK Pemilik</label><input type="text" name="nik" className="form-control form-control-custom" defaultValue={editData?.nik || ''} /></div>
+                                       </div>
+                                       <div className="col-md-6">
+                                           <div className="form-group-custom"><label>NIB Usaha</label><input type="text" name="nib" className="form-control form-control-custom" defaultValue={editData?.nib || ''} /></div>
+                                       </div>
+                                   </div>
 
-                                  <div className="row g-3">
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Nama UMKM</label><input type="text" name="nama_umkm" className="form-control form-control-custom" required defaultValue={editData?.nama_umkm || ''} /></div>
-                                      </div>
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Nama Pemilik</label><input type="text" name="nama_pemilik" className="form-control form-control-custom" required defaultValue={editData?.nama_pemilik || ''} /></div>
-                                      </div>
-                                      <div className="col-12">
-                                          <div className="form-group-custom"><label>Deskripsi Usaha</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2} defaultValue={editData?.deskripsi || ''}></textarea></div>
-                                      </div>
-                                      <div className="col-md-6">
-                                          <div className="form-group-custom"><label>NIK Pemilik</label><input type="text" name="nik" className="form-control form-control-custom" defaultValue={editData?.nik || ''} /></div>
-                                      </div>
-                                      <div className="col-md-6">
-                                          <div className="form-group-custom"><label>NIB Usaha</label><input type="text" name="nib" className="form-control form-control-custom" defaultValue={editData?.nib || ''} /></div>
-                                      </div>
-                                  </div>
+                                   <h6 className="fw-bold mt-4 mb-3 text-warning"><i className="bi bi-key me-2"></i>Akun Login</h6>
+                                   <div className="row g-3">
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Username (Tidak bisa diubah)</label><input type="text" className="form-control form-control-custom bg-light" defaultValue={editData?.username || ''} disabled autoComplete="off" /></div>
+                                       </div>
+                                       <div className="col-12">
+                                           <div className="form-group-custom"><label>Password Baru <span className="text-muted fw-normal">(kosongkan jika tidak diubah)</span></label><input type="password" name="password" className="form-control form-control-custom" autoComplete="new-password" /></div>
+                                       </div>
+                                   </div>
                               </div>
 
                               <div className="col-lg-6 ps-lg-4 mt-4 mt-lg-0">

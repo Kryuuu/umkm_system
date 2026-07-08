@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import DataTableInitializer from "@/components/DataTableInitializer";
@@ -13,6 +13,13 @@ export const metadata: Metadata = {
     icon: "/rumah-bumn-icon.png",
     apple: "/rumah-bumn-icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1, // Prevents auto-zoom on iOS when tapping inputs
+  userScalable: false,
 };
 
 export default function RootLayout({

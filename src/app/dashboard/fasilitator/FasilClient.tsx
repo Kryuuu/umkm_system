@@ -48,7 +48,7 @@ function StaffFormFields({ staff, domisiliKalsel, includePassword = true }: {
       <div className="col-md-6 form-group-custom">
         <label>Role</label>
         <select name="role" className="form-control form-control-custom" defaultValue={staff?.role || "Staff"}>
-          <option value="Staff">Staff</option>
+          <option value="Staff">Pengguna</option>
           <option value="Admin">Admin</option>
         </select>
       </div>
@@ -175,18 +175,18 @@ export default function FasilClient({ staff, currentUserId, domisiliKalsel, perm
       <div className="staff-hero">
         <div>
           <span className="settings-eyebrow">MANAJEMEN PENGGUNA</span>
-          <h3>Data Staff</h3>
+          <h3>Data Pengguna</h3>
           <p>Kelola akun, informasi profil, dan batas akses setiap anggota tim.</p>
         </div>
         <button className="btn-primary-custom" onClick={() => setModal({ type: "add" })}>
-          <i className="bi bi-person-plus-fill me-2" />Tambah Staff
+          <i className="bi bi-person-plus-fill me-2" />Tambah Pengguna
         </button>
       </div>
 
       {!permissionsReady && (
         <div className="alert alert-warning d-flex align-items-start gap-2" role="alert">
           <i className="bi bi-database-fill mt-1" />
-          <div><strong>Aktifkan penyimpanan hak akses.</strong><br /><span className="fs-sm">Jalankan bagian hak akses pada file <code>migration.sql</code> di Supabase SQL Editor. Pengelolaan data staff lainnya tetap dapat digunakan.</span></div>
+          <div><strong>Aktifkan penyimpanan hak akses.</strong><br /><span className="fs-sm">Jalankan bagian hak akses pada file <code>migration.sql</code> di Supabase SQL Editor. Pengelolaan data pengguna lainnya tetap dapat digunakan.</span></div>
         </div>
       )}
 
@@ -194,7 +194,7 @@ export default function FasilClient({ staff, currentUserId, domisiliKalsel, perm
         {[
           { label: "Total Akun", value: staff.length, icon: "bi-people-fill", tone: "primary" },
           { label: "Administrator", value: admins, icon: "bi-shield-lock-fill", tone: "success" },
-          { label: "Staff Aktif", value: staff.length - admins, icon: "bi-person-badge-fill", tone: "info" },
+          { label: "Pengguna Aktif", value: staff.length - admins, icon: "bi-person-badge-fill", tone: "info" },
           { label: "Akses Terbatas", value: restricted, icon: "bi-shield-exclamation", tone: "warning" },
         ].map((item) => (
           <div className="col-6 col-xl-3" key={item.label}>
@@ -220,7 +220,7 @@ export default function FasilClient({ staff, currentUserId, domisiliKalsel, perm
         <div className="panel-body p-0">
           <div className="table-responsive">
             <table className="table-custom staff-table">
-              <thead><tr><th>Staff</th><th>Kontak</th><th>Domisili</th><th>Role</th><th>Akses Modul</th><th className="text-end">Aksi</th></tr></thead>
+              <thead><tr><th>Pengguna</th><th>Kontak</th><th>Domisili</th><th>Role</th><th>Akses Modul</th><th className="text-end">Aksi</th></tr></thead>
               <tbody>
                 {filteredStaff.map((item) => {
                   const accessCount = item.role === "Admin" ? STAFF_PERMISSIONS.length : item.permissions.length;
@@ -251,7 +251,7 @@ export default function FasilClient({ staff, currentUserId, domisiliKalsel, perm
                     </tr>
                   );
                 })}
-                {filteredStaff.length === 0 && <tr><td colSpan={6} className="text-center text-muted py-5">Tidak ada staff yang cocok dengan pencarian.</td></tr>}
+                {filteredStaff.length === 0 && <tr><td colSpan={6} className="text-center text-muted py-5">Tidak ada pengguna yang cocok dengan pencarian.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -264,7 +264,7 @@ export default function FasilClient({ staff, currentUserId, domisiliKalsel, perm
             <div className="staff-modal-header">
               <div className="staff-modal-icon"><i className={`bi ${modal.type === "add" ? "bi-person-plus-fill" : modal.type === "edit" ? "bi-pencil-square" : "bi-shield-lock-fill"}`} /></div>
               <div>
-                <h5>{modal.type === "add" ? "Tambah Staff Baru" : modal.type === "edit" ? "Edit Data Staff" : "Atur Hak Akses"}</h5>
+                <h5>{modal.type === "add" ? "Tambah Pengguna Baru" : modal.type === "edit" ? "Edit Data Pengguna" : "Atur Hak Akses"}</h5>
                 <p>{modal.type === "access" ? `Tentukan modul yang dapat digunakan oleh ${modal.staff.nickname}.` : "Lengkapi informasi akun dengan benar."}</p>
               </div>
               <button className="staff-modal-close" onClick={() => setModal(null)} disabled={busy} aria-label="Tutup"><i className="bi bi-x-lg" /></button>
@@ -275,7 +275,7 @@ export default function FasilClient({ staff, currentUserId, domisiliKalsel, perm
                 <div className="staff-modal-body">
                   <StaffFormFields domisiliKalsel={domisiliKalsel} />
                   <div className="mt-4">
-                    <label className="form-label fw-bold">Akses awal Staff</label>
+                    <label className="form-label fw-bold">Akses awal Pengguna</label>
                     <div className="permission-compact-grid">
                       {STAFF_PERMISSIONS.map((permission) => (
                         <label key={permission.key}><input type="checkbox" name="permissions" value={permission.key} defaultChecked /><span><i className={`bi ${permission.icon}`} />{permission.label}</span></label>
@@ -283,7 +283,7 @@ export default function FasilClient({ staff, currentUserId, domisiliKalsel, perm
                     </div>
                   </div>
                 </div>
-                <div className="staff-modal-footer"><button type="button" className="btn btn-light" onClick={() => setModal(null)}>Batal</button><button className="btn-primary-custom" disabled={busy}>{busy ? "Menyimpan..." : "Tambah Staff"}</button></div>
+                <div className="staff-modal-footer"><button type="button" className="btn btn-light" onClick={() => setModal(null)}>Batal</button><button className="btn-primary-custom" disabled={busy}>{busy ? "Menyimpan..." : "Tambah Pengguna"}</button></div>
               </form>
             )}
 

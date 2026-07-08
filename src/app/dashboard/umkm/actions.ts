@@ -31,6 +31,7 @@ export async function createUmkm(formData: FormData) {
     let nibFileName = await saveFile(formData.get('dokumen_nib') as File);
 
     const { error } = await supabaseAdmin.from('umkm').insert({
+      id_umkm: rawData.id_umkm || null,
       username: rawData.username,
       password: hashedPassword,
       nama_umkm: rawData.nama_umkm,
