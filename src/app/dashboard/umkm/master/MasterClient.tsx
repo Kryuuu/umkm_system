@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createUmkm, updateUmkm, deleteUmkm } from "../actions";
+import { createUmkm, updateUmkm, deleteUmkm, toggleBanUmkm } from "../actions";
 
 export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: any[], fasilitatorList: any[] }) {
   const [editData, setEditData] = useState<any>(null);
@@ -93,8 +93,44 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
     }
   };
 
+  const handleToggleBan = async (id: number, currentBanStatus: boolean) => {
+    const actionText = currentBanStatus ? 'Membuka Blokir' : 'Memblokir';
+    if (typeof window !== "undefined" && window.Swal) {
+      window.Swal.fire({
+          title: `Konfirmasi ${actionText}`,
+          text: currentBanStatus ? "Akun ini akan bisa melakukan absensi kembali." : "Akun ini akan diblokir dari sistem absensi.",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: currentBanStatus ? '#10b981' : '#e74c3c',
+          cancelButtonColor: '#95a5a6',
+          confirmButtonText: `Ya, ${actionText}!`,
+          cancelButtonText: 'Batal',
+          customClass: {
+              confirmButton: `btn btn-${currentBanStatus ? 'success' : 'danger'} rounded-pill px-4 me-2`,
+              cancelButton: 'btn btn-secondary rounded-pill px-4'
+          },
+          buttonsStyling: false
+      }).then(async (result: any) => {
+          if (result.isConfirmed) {
+              const res = await toggleBanUmkm(id, currentBanStatus);
+              if (res.success) {
+                  window.Swal.fire({icon: 'success', title: 'Berhasil!', text: `Akun berhasil ${currentBanStatus ? 'dibuka blokirnya' : 'diblokir'}.`});
+              } else {
+                  window.Swal.fire({icon: 'error', title: 'Gagal', text: res.message || 'Terjadi kesalahan.'});
+              }
+          }
+      });
+    }
+  };
+
   return (
     <>
+      <style>{`
+        @keyframes pulseBorderRed {
+          0%, 100% { box-shadow: 0 0 10px rgba(220, 53, 69, 0.4); border-color: rgba(220, 53, 69, 0.5); }
+          50% { box-shadow: 0 0 20px rgba(220, 53, 69, 0.8); border-color: rgba(220, 53, 69, 1); }
+        }
+      `}</style>
       <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
               <h5 className="fw-bold mb-1">Master Data UMKM</h5>
@@ -140,9 +176,18 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
                               <td><span className="badge-status badge-pemula">{u.status_usaha || 'Pemula'}</span></td>
                               <td>{u.domisili || '-'}</td>
                               <td>
-                                  <div className="d-flex gap-1">
+                                  <div className="d-flex gap-1 flex-wrap">
                                       <button className="btn-warning-custom shadow-sm" onClick={() => openEdit(u)} title="Edit"><i className="bi bi-pencil-square"></i></button>
                                       <button onClick={() => confirmDelete(u.id)} className="btn-danger-custom shadow-sm" title="Hapus"><i className="bi bi-trash"></i></button>
+                                      <button 
+                                        onClick={() => handleToggleBan(u.id, u.is_banned)} 
+                                        className={`btn btn-sm shadow-sm ${u.is_banned ? 'btn-danger text-white fw-bold' : 'btn-outline-secondary'}`} 
+                                        style={u.is_banned ? { animation: 'pulseBorderRed 2s infinite' } : {}}
+                                        title={u.is_banned ? "Buka Blokir (Unban)" : "Blokir Absensi (Ban)"}
+                                      >
+                                        <i className={`bi ${u.is_banned ? 'bi-shield-lock-fill' : 'bi-shield-check'} me-1`}></i>
+                                        {u.is_banned ? 'Banned' : 'Ban'}
+                                      </button>
                                   </div>
                               </td>
                           </tr>

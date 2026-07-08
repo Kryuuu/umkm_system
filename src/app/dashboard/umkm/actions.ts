@@ -124,3 +124,19 @@ export async function deleteUmkm(id: number) {
     return { success: false, message: err.message };
   }
 }
+
+export async function toggleBanUmkm(id: number, currentBanStatus: boolean) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('umkm')
+      .update({ is_banned: !currentBanStatus, failed_absent_attempts: 0 })
+      .eq('id', id);
+      
+    if (error) return { success: false, message: error.message };
+
+    revalidatePath("/dashboard/umkm/master");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
+}

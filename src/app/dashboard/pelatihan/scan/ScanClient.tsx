@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Html5Qrcode } from "html5-qrcode";
-import { verifyQrTokenAndRecordPresence } from "../kehadiranActions";
+import { verifyQrTokenAndRecordPresence, reportBanToAdminAction } from "../kehadiranActions";
 import { MANUAL_ATTENDANCE_CODE_LENGTH, normalizeAttendanceInput } from "@/lib/attendance-token";
 
 export default function ScanClient({ user }: { user: any }) {
@@ -73,7 +73,8 @@ export default function ScanClient({ user }: { user: any }) {
             {
               fps: 20,
               qrbox: (width, height) => {
-                const size = Math.min(width, height) * 0.75;
+                let size = Math.min(width, height) * 0.75;
+                if (size < 50) size = 250; // Fallback jika dimensi container belum siap
                 return { width: size, height: size };
               },
             },
@@ -172,18 +173,49 @@ export default function ScanClient({ user }: { user: any }) {
           router.push("/dashboard/pelatihan");
         });
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "Absensi Gagal",
-          text: res.message || "Token QR Code tidak valid atau sudah kedaluwarsa.",
-          confirmButtonText: "Scan Ulang",
-          confirmButtonColor: "#e11d48",
-        }).then(() => {
-          setLoading(false);
-          if (activeTab === "camera") {
-            startScanner();
-          }
-        });
+        if (res.isBanned) {
+          Swal.fire({
+            icon: "error",
+            title: "Akses Diblokir",
+            text: res.message || "Akun Anda diblokir dari sistem absensi.",
+            showCancelButton: true,
+            confirmButtonText: "<i class='bi bi-headset me-2'></i>Lapor Admin",
+            cancelButtonText: "Tutup",
+            confirmButtonColor: "#4f46e5",
+            cancelButtonColor: "#e11d48",
+          }).then(async (result: any) => {
+            if (result.isConfirmed) {
+              Swal.fire({
+                title: "Mengirim Laporan...",
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+              });
+              const reportRes = await reportBanToAdminAction();
+              if (reportRes.success) {
+                Swal.close();
+                router.push(`/dashboard/konsultasi/thread/${reportRes.threadId}`);
+              } else {
+                Swal.fire("Gagal", reportRes.message || "Gagal menghubungi Admin.", "error");
+                setLoading(false);
+              }
+            } else {
+              setLoading(false);
+            }
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Absensi Gagal",
+            text: res.message || "Token QR Code tidak valid atau sudah kedaluwarsa.",
+            confirmButtonText: "Scan Ulang",
+            confirmButtonColor: "#e11d48",
+          }).then(() => {
+            setLoading(false);
+            if (activeTab === "camera") {
+              startScanner();
+            }
+          });
+        }
       }
     } catch (err: any) {
       Swal.fire({

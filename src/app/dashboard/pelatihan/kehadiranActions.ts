@@ -136,6 +136,18 @@ export async function generateQrTokenAction(pelatihanId: number) {
 export async function verifyQrTokenAndRecordPresence(qrToken: string) {
   try {
     const umkmId = await getActiveUmkmId();
+    
+    // Check ban status first
+    const { data: umkmUser } = await supabaseAdmin
+      .from("umkm")
+      .select("failed_absent_attempts, is_banned")
+      .eq("id", umkmId)
+      .single();
+
+    if (umkmUser?.is_banned) {
+      return { success: false, message: "Akun Anda diblokir dari sistem absensi karena salah memasukkan kode. Silakan lapor ke Admin.", isBanned: true };
+    }
+
     const submittedToken = normalizeAttendanceInput(qrToken);
     const submittedCode = submittedToken.toUpperCase();
     
@@ -166,16 +178,33 @@ export async function verifyQrTokenAndRecordPresence(qrToken: string) {
       lookupError = error;
     }
       
-    if (lookupError || !pelatihan) {
+    if (lookupError || !pelatihan || (pelatihan.qr_expires_at && new Date(pelatihan.qr_expires_at) < new Date())) {
+      const attempts = (umkmUser?.failed_absent_attempts || 0) + 1;
+      let isBanned = false;
+      let msg = "Kode absensi tidak valid atau sudah kedaluwarsa.";
+      
+      if (attempts >= 3) {
+        isBanned = true;
+        msg = "Kode salah 3 kali! Akun Anda diblokir sementara untuk absensi. Silakan hubungi Admin.";
+      } else {
+        msg = `Kode salah atau kedaluwarsa. Kesempatan salah: ${3 - attempts} kali lagi sebelum diblokir.`;
+      }
+      
+      await supabaseAdmin.from("umkm").update({
+        failed_absent_attempts: attempts,
+        is_banned: isBanned
+      }).eq("id", umkmId);
+
       return { 
         success: false, 
-        message: "QR Code atau kode manual tidak valid, kedaluwarsa, atau sudah berganti. Gunakan kode terbaru yang tampil pada layar pelatihan."
+        message: msg,
+        isBanned: isBanned
       };
     }
     
-    // 2. Check expiration
-    if (pelatihan.qr_expires_at && new Date(pelatihan.qr_expires_at) < new Date()) {
-      return { success: false, message: "Kode absensi sudah kedaluwarsa. Gunakan QR atau kode manual terbaru di layar." };
+    // 2. Jika kode benar, reset attempts ke 0
+    if (umkmUser?.failed_absent_attempts && umkmUser.failed_absent_attempts > 0) {
+      await supabaseAdmin.from("umkm").update({ failed_absent_attempts: 0 }).eq("id", umkmId);
     }
     
     const pelatihanId = pelatihan.id;
@@ -285,5 +314,56 @@ export async function getKehadiranListAction(pelatihanId: number) {
     return { success: true, presence: presence || [] };
   } catch (err: any) {
     return { success: false, message: err.message, presence: [] };
+  }
+}
+
+export async function reportBanToAdminAction() {
+  try {
+    const umkmId = await getActiveUmkmId();
+    
+    const subjek = "Permohonan Buka Blokir Absensi";
+    const pesan = "Halo Admin, akun saya telah diblokir dari sistem absensi karena kesalahan memasukkan kode 3 kali berturut-turut. Mohon bantuannya untuk meninjau dan membuka kembali akses absensi saya. Terima kasih.";
+
+    const { data: newChat, error } = await supabaseAdmin.from("konsultasi").insert({
+      umkm_id: umkmId,
+      pengirim_role: "Mitra",
+      pengirim_id: umkmId,
+      subjek: subjek,
+      pesan: pesan,
+      parent_id: null,
+      is_read: false
+    }).select().single();
+
+    if (error) throw error;
+    
+    const { data: uInfo } = await supabaseAdmin.from("umkm").select("nama_umkm, fasilitator_id").eq("id", umkmId).single();
+    if (uInfo) {
+      if (uInfo.fasilitator_id) {
+        await supabaseAdmin.from("notifikasi").insert({
+          target_role: "Staff",
+          target_id: uInfo.fasilitator_id,
+          tipe: "chat",
+          judul: "Permohonan Buka Blokir",
+          pesan: `UMKM ${uInfo.nama_umkm} mengirim pesan permohonan buka blokir absensi.`
+        });
+      }
+
+      const { data: admins } = await supabaseAdmin.from("fasilitator").select("id").eq("role", "Admin");
+      if (admins && admins.length > 0) {
+        const adminNotifs = admins.map(admin => ({
+          target_role: "Admin",
+          target_id: admin.id,
+          tipe: "chat",
+          judul: "Permohonan Buka Blokir",
+          pesan: `UMKM ${uInfo.nama_umkm} mengirim pesan permohonan buka blokir absensi.`
+        }));
+        await supabaseAdmin.from("notifikasi").insert(adminNotifs);
+      }
+    }
+
+    revalidatePath("/dashboard/konsultasi");
+    return { success: true, threadId: newChat.id };
+  } catch (err: any) {
+    return { success: false, message: err.message };
   }
 }
