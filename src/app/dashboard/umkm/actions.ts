@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { promises as fs } from "fs";
 import path from "path";
+import { calculateScore } from "@/lib/scoring";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,6 +104,9 @@ export async function updateUmkm(formData: FormData) {
     const { error } = await supabaseAdmin.from('umkm').update(updates).eq('id', id);
 
     if (error) return { success: false, message: error.message };
+
+    // Re-calculate score to ensure it is synchronized
+    await calculateScore(Number(id));
 
     revalidatePath("/dashboard/umkm");
     revalidatePath("/dashboard/umkm/master");

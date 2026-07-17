@@ -1,76 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { analyzeUmkmAction, analyzeAllAction } from "./actions";
+import { useRouter } from "next/navigation";
 
-export default function LeaderboardClient({ leaderboard, user }: { leaderboard: any[], user: any }) {
+export default function LeaderboardClient({ 
+  leaderboard, 
+  user, 
+  periods, 
+  selectedPeriod 
+}: { 
+  leaderboard: any[];
+  user: any;
+  periods?: { bulan: string; tahun: number; label: string; val: string }[];
+  selectedPeriod?: string;
+}) {
+  const router = useRouter();
 
   const formatNumber = (num: number) => {
       return Number(num).toLocaleString('id-ID');
   };
 
-  const handleAnalyzeAll = async (e: any) => {
-    e.preventDefault();
-    if (typeof window === "undefined") return;
-    const Swal = (window as any).Swal;
-
-    Swal.fire({
-      title: "Menganalisis Semua UMKM...",
-      text: "Proses ini mungkin memakan waktu beberapa detik.",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    const res = await analyzeAllAction();
-    if (res.success) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Analisis seluruh UMKM berhasil dilakukan.'
-      }).then(() => {
-        window.location.reload();
-      });
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Gagal',
-        text: res.message || 'Gagal menganalisis seluruh UMKM.'
-      });
-    }
-  };
-
-  const handleAnalyzeSingle = async (e: any, umkmId: number) => {
-    e.preventDefault();
-    if (typeof window === "undefined") return;
-    const Swal = (window as any).Swal;
-
-    Swal.fire({
-      title: "Menganalisis UMKM...",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    const res = await analyzeUmkmAction(umkmId);
-    if (res.success) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Analisis UMKM berhasil dilakukan.'
-      }).then(() => {
-        window.location.reload();
-      });
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Gagal',
-        text: res.message || 'Gagal menganalisis UMKM.'
-      });
-    }
-  };
 
   return (
     <>
@@ -79,10 +28,26 @@ export default function LeaderboardClient({ leaderboard, user }: { leaderboard: 
               <h5 className="fw-bold mb-1">Leaderboard UMKM</h5>
               <p className="text-muted fs-sm mb-0">Ranking UMKM berdasarkan skor usaha</p>
           </div>
-          {user.role !== 'Mitra' && (
-          <form onSubmit={handleAnalyzeAll} style={{display:'inline'}}>
-              <button type="submit" className="btn-success-custom"><i className="bi bi-cpu"></i> Analisis Semua UMKM</button>
-          </form>
+          {periods && periods.length > 0 && (
+            <div className="d-flex align-items-center gap-2">
+              <label className="text-muted fs-sm fw-semibold mb-0 text-nowrap">
+                <i className="bi bi-calendar-month me-1"></i> Periode:
+              </label>
+              <select 
+                className="form-select form-select-sm rounded-pill shadow-sm bg-white" 
+                style={{ minWidth: "150px", border: "1px solid rgba(0,0,0,0.1)" }}
+                value={selectedPeriod}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const [b, t] = val.split(' ');
+                  router.push(`/dashboard/leaderboard?bulan=${b}&tahun=${t}`);
+                }}
+              >
+                {periods.map(p => (
+                  <option key={p.val} value={p.val}>{p.label}</option>
+                ))}
+              </select>
+            </div>
           )}
       </div>
 
@@ -106,12 +71,6 @@ export default function LeaderboardClient({ leaderboard, user }: { leaderboard: 
                               <div className="text-center"><div className="fw-800" style={{fontSize:'1.5rem'}}>{u.total_produk || 0}</div><div className="fs-xs text-muted">PRODUK</div></div>
                           </div>
                           <span className={`badge-status ${statusClass}`}>{u.status_usaha}</span>
-                          {user.role !== 'Mitra' && (
-                          <form onSubmit={(e) => handleAnalyzeSingle(e, u.id)} className="mt-3">
-                              <input type="hidden" name="umkm_id" value={u.id} />
-                              <button type="submit" className="btn-outline-custom" style={{padding:'6px 12px', fontSize:'0.75rem'}}><i className="bi bi-cpu"></i> Re-Analisis</button>
-                          </form>
-                          )}
                       </div>
                   </div>
               </div>
@@ -125,7 +84,7 @@ export default function LeaderboardClient({ leaderboard, user }: { leaderboard: 
           <div className="panel-body p-0">
               <div className="table-responsive p-3">
                   <table className="table-custom data-table" style={{width:'100%'}}>
-                      <thead><tr><th>#</th><th>UMKM</th><th>Pemilik</th><th>Omzet Total</th><th>Produk</th><th>Skor</th><th>Status</th><th>Rekomendasi</th></tr></thead>
+                      <thead><tr><th>#</th><th>UMKM</th><th>Pemilik</th><th>{selectedPeriod && selectedPeriod.startsWith('Semua') ? 'Omzet (Keseluruhan)' : `Omzet (${selectedPeriod})`}</th><th>Produk</th><th>Skor</th><th>Status</th><th>Rekomendasi</th></tr></thead>
                       <tbody>
                       {leaderboard.map((u, i) => {
                           const sc = 'badge-' + (u.status_usaha || '').toLowerCase().replace(/ /g, '-');

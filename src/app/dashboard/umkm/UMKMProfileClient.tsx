@@ -24,17 +24,24 @@ export default function UMKMProfileClient({
   umkm,
   produkCount,
   latestMonitoring,
+  pelatihanList = [],
+  kehadiranList = [],
+  dynamicBreakdown,
   isAdmin = false,
   initialTab = "analisis",
 }: {
   umkm: any;
   produkCount: number;
   latestMonitoring: any;
+  pelatihanList?: any[];
+  kehadiranList?: any[];
+  dynamicBreakdown?: any;
   isAdmin?: boolean;
   initialTab?: "analisis" | "edit";
 }) {
   const [activeTab, setActiveTab] = useState<"analisis" | "edit">(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAllTrainings, setShowAllTrainings] = useState(false);
   
   const getSwal = () => {
     if (typeof window !== "undefined") {
@@ -43,111 +50,10 @@ export default function UMKMProfileClient({
     return null;
   };
 
-  // 1. Calculate Score Breakdown
-  const breakdown = {
-    omzet: { score: 0, max: 30, value: 0, desc: "Kurang dari Rp 2.000.000" },
-    produk: { score: 0, max: 20, value: produkCount, desc: "Tidak ada produk" },
-    pekerja: { score: 0, max: 15, value: 0, desc: "Tidak ada data tenaga kerja" },
-    pelanggan: { score: 0, max: 15, value: 0, desc: "Tidak ada data pelanggan" },
-    legalitas: { score: 0, max: 20, value: 0, desc: "Tidak memiliki izin usaha lengkap" },
+  // 1. Use Dynamic Score Breakdown
+  const breakdown = dynamicBreakdown || {
+    omzet: { score: 0, max: 100, value: 0, desc: "Belum memenuhi kriteria" }
   };
-
-  // Omzet
-  if (latestMonitoring) {
-    const omzet = Number(latestMonitoring.omzet || 0);
-    breakdown.omzet.value = omzet;
-    if (omzet >= 25000000) {
-      breakdown.omzet.score = 30;
-      breakdown.omzet.desc = "Sangat Tinggi (≥ Rp 25 Juta)";
-    } else if (omzet >= 15000000) {
-      breakdown.omzet.score = 25;
-      breakdown.omzet.desc = "Tinggi (≥ Rp 15 Juta)";
-    } else if (omzet >= 10000000) {
-      breakdown.omzet.score = 20;
-      breakdown.omzet.desc = "Cukup Tinggi (≥ Rp 10 Juta)";
-    } else if (omzet >= 5000000) {
-      breakdown.omzet.score = 15;
-      breakdown.omzet.desc = "Menengah (≥ Rp 5 Juta)";
-    } else if (omzet >= 2000000) {
-      breakdown.omzet.score = 10;
-      breakdown.omzet.desc = "Rendah (≥ Rp 2 Juta)";
-    } else {
-      breakdown.omzet.score = 5;
-      breakdown.omzet.desc = "Sangat Rendah (< Rp 2 Juta)";
-    }
-  }
-
-  // Produk
-  if (produkCount >= 5) {
-    breakdown.produk.score = 20;
-    breakdown.produk.desc = "Sangat Baik (≥ 5 Produk)";
-  } else if (produkCount >= 3) {
-    breakdown.produk.score = 15;
-    breakdown.produk.desc = "Baik (≥ 3 Produk)";
-  } else if (produkCount >= 2) {
-    breakdown.produk.score = 10;
-    breakdown.produk.desc = "Cukup (≥ 2 Produk)";
-  } else if (produkCount >= 1) {
-    breakdown.produk.score = 5;
-    breakdown.produk.desc = "Kurang (1 Produk)";
-  }
-
-  // Pekerja
-  if (latestMonitoring) {
-    const tk = Number(latestMonitoring.jumlah_tenaga_kerja || 0);
-    breakdown.pekerja.value = tk;
-    if (tk >= 8) {
-      breakdown.pekerja.score = 15;
-      breakdown.pekerja.desc = "Sangat Baik (≥ 8 Pekerja)";
-    } else if (tk >= 5) {
-      breakdown.pekerja.score = 12;
-      breakdown.pekerja.desc = "Baik (≥ 5 Pekerja)";
-    } else if (tk >= 3) {
-      breakdown.pekerja.score = 8;
-      breakdown.pekerja.desc = "Cukup (≥ 3 Pekerja)";
-    } else if (tk >= 1) {
-      breakdown.pekerja.score = 5;
-      breakdown.pekerja.desc = "Kurang (1-2 Pekerja)";
-    }
-  }
-
-  // Pelanggan
-  if (latestMonitoring) {
-    const pl = Number(latestMonitoring.jumlah_pelanggan || 0);
-    breakdown.pelanggan.value = pl;
-    if (pl >= 200) {
-      breakdown.pelanggan.score = 15;
-      breakdown.pelanggan.desc = "Jangkauan Luas (≥ 200 Pelanggan)";
-    } else if (pl >= 100) {
-      breakdown.pelanggan.score = 12;
-      breakdown.pelanggan.desc = "Jangkauan Menengah (≥ 100 Pelanggan)";
-    } else if (pl >= 50) {
-      breakdown.pelanggan.score = 8;
-      breakdown.pelanggan.desc = "Jangkauan Cukup (≥ 50 Pelanggan)";
-    } else if (pl >= 20) {
-      breakdown.pelanggan.score = 5;
-      breakdown.pelanggan.desc = "Jangkauan Terbatas (≥ 20 Pelanggan)";
-    }
-  }
-
-  // Legalitas
-  const legals: string[] = [];
-  if (umkm.nib) {
-    breakdown.legalitas.score += 7;
-    legals.push("NIB");
-  }
-  if (umkm.sertifikat_halal) {
-    breakdown.legalitas.score += 7;
-    legals.push("Halal");
-  }
-  if (umkm.sertifikat_pirt) {
-    breakdown.legalitas.score += 6;
-    legals.push("PIRT");
-  }
-  breakdown.legalitas.value = legals.length;
-  if (legals.length > 0) {
-    breakdown.legalitas.desc = "Memiliki izin: " + legals.join(", ");
-  }
 
   // 2. Legalitas Warnings
   const warnings: { type: "danger" | "warning"; icon: string; msg: string }[] = [];
@@ -256,7 +162,7 @@ export default function UMKMProfileClient({
         <li className="nav-item">
           <button
             onClick={() => setActiveTab("analisis")}
-            className={`nav-link fw-bold px-4 py-3 border-0 transition-all ${
+            className={`nav-link fw-bold px-3 py-2 border-0 transition-all ${
               activeTab === "analisis"
                 ? "text-primary border-bottom border-3 border-primary active"
                 : "text-muted"
@@ -272,7 +178,7 @@ export default function UMKMProfileClient({
         <li className="nav-item">
           <button
             onClick={() => setActiveTab("edit")}
-            className={`nav-link fw-bold px-4 py-3 border-0 transition-all ${
+            className={`nav-link fw-bold px-3 py-2 border-0 transition-all ${
               activeTab === "edit"
                 ? "text-primary border-bottom border-3 border-primary active"
                 : "text-muted"
@@ -299,8 +205,8 @@ export default function UMKMProfileClient({
                     <div
                       className="avatar bg-primary bg-opacity-10 text-primary fs-1 mx-auto"
                       style={{
-                        width: "80px",
-                        height: "80px",
+                        width: "60px",
+                        height: "60px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -313,9 +219,9 @@ export default function UMKMProfileClient({
                   <h5 className="fw-bold mb-1">{umkm.nama_umkm}</h5>
                   <p className="text-muted fs-sm mb-3">{umkm.nama_pemilik}</p>
 
-                  <div className="d-flex justify-content-center align-items-center gap-2 mb-4">
-                    <h2 className="mb-0 fw-bold text-primary" style={{ fontSize: "3rem" }}>
-                      {Math.round(umkm.skor_usaha || 0)}
+                  <div className="d-flex justify-content-center align-items-center gap-2 mb-3">
+                    <h2 className="mb-0 fw-bold text-primary" style={{ fontSize: "2.5rem" }}>
+                      {breakdown.omzet.score}
                     </h2>
                     <span className="text-muted fw-bold">pts</span>
                   </div>
@@ -426,162 +332,178 @@ export default function UMKMProfileClient({
 
             {/* Kolom Kanan: Rincian Penilaian */}
             <div className="col-lg-8">
-              <div className="panel border-0 shadow-sm rounded-4 h-100">
-                <div className="panel-header border-bottom-0 pt-4 pb-2 px-4">
-                  <h5 className="fw-bold mb-0">
-                    <i className="bi bi-list-check text-success me-2"></i> Rincian Parameter Penilaian
-                  </h5>
-                </div>
-                <div className="panel-body p-4">
-                  <div className="list-group list-group-flush gap-3">
-                    {/* 1. Omzet */}
-                    <div className="list-group-item p-4 rounded-3 border bg-light">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h6 className="fw-bold mb-0">
-                          <i className="bi bi-cash-stack text-success me-2"></i> Omzet Bulanan
-                        </h6>
-                        <span className="fw-bold fs-5 text-success">
-                          {breakdown.omzet.score}{" "}
-                          <span className="fs-sm text-muted fw-normal">
-                            / {breakdown.omzet.max} pts
-                          </span>
-                        </span>
+              <div className="d-flex flex-column gap-3 h-100">
+                
+                {/* 1. Omzet Premium Widget */}
+                <div 
+                  className="p-4 rounded-4 position-relative overflow-hidden shadow-sm" 
+                  style={{ 
+                    background: "linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(5,150,105,0.02) 100%)", 
+                    border: "1px solid rgba(16,185,129,0.2)" 
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-4 position-relative" style={{ zIndex: 1 }}>
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{ width: "42px", height: "42px", fontSize: "1.2rem" }}>
+                        <i className="bi bi-cash-coin"></i>
                       </div>
-                      <div className="progress mb-3 bg-white" style={{ height: "12px", borderRadius: "10px" }}>
-                        <div
-                          className="progress-bar bg-success rounded-pill"
-                          style={{
-                            width: `${(breakdown.omzet.score / breakdown.omzet.max) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="d-flex justify-content-between text-muted fs-sm">
-                        <span>
-                          <i className="bi bi-info-circle me-1"></i> {breakdown.omzet.desc}
-                        </span>
-                        <span className="fw-bold text-heading">
-                          Rp {breakdown.omzet.value.toLocaleString("id-ID")}
-                        </span>
+                      <div>
+                        <h6 className="fw-bold mb-0 text-dark">Omzet Bulanan</h6>
+                        <span className="text-muted" style={{ fontSize: "0.8rem" }}>Parameter Utama</span>
                       </div>
                     </div>
-
-                    {/* 2. Produk */}
-                    <div className="list-group-item p-4 rounded-3 border bg-light">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h6 className="fw-bold mb-0">
-                          <i className="bi bi-box-seam text-info me-2"></i> Variasi Produk
-                        </h6>
-                        <span className="fw-bold fs-5 text-info">
-                          {breakdown.produk.score}{" "}
-                          <span className="fs-sm text-muted fw-normal">
-                            / {breakdown.produk.max} pts
-                          </span>
-                        </span>
-                      </div>
-                      <div className="progress mb-3 bg-white" style={{ height: "12px", borderRadius: "10px" }}>
-                        <div
-                          className="progress-bar bg-info rounded-pill"
-                          style={{
-                            width: `${(breakdown.produk.score / breakdown.produk.max) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="d-flex justify-content-between text-muted fs-sm">
-                        <span>
-                          <i className="bi bi-info-circle me-1"></i> {breakdown.produk.desc}
-                        </span>
-                        <span className="fw-bold text-heading">{breakdown.produk.value} produk</span>
-                      </div>
-                    </div>
-
-                    {/* 3. Pekerja */}
-                    <div className="list-group-item p-4 rounded-3 border bg-light">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h6 className="fw-bold mb-0">
-                          <i className="bi bi-person-workspace text-warning me-2"></i> Serapan Tenaga Kerja
-                        </h6>
-                        <span className="fw-bold fs-5 text-warning">
-                          {breakdown.pekerja.score}{" "}
-                          <span className="fs-sm text-muted fw-normal">
-                            / {breakdown.pekerja.max} pts
-                          </span>
-                        </span>
-                      </div>
-                      <div className="progress mb-3 bg-white" style={{ height: "12px", borderRadius: "10px" }}>
-                        <div
-                          className="progress-bar bg-warning rounded-pill"
-                          style={{
-                            width: `${(breakdown.pekerja.score / breakdown.pekerja.max) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="d-flex justify-content-between text-muted fs-sm">
-                        <span>
-                          <i className="bi bi-info-circle me-1"></i> {breakdown.pekerja.desc}
-                        </span>
-                        <span className="fw-bold text-heading">{breakdown.pekerja.value} orang</span>
-                      </div>
-                    </div>
-
-                    {/* 4. Pelanggan */}
-                    <div className="list-group-item p-4 rounded-3 border bg-light">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h6 className="fw-bold mb-0">
-                          <i className="bi bi-people text-primary me-2"></i> Jangkauan Pelanggan
-                        </h6>
-                        <span className="fw-bold fs-5 text-primary">
-                          {breakdown.pelanggan.score}{" "}
-                          <span className="fs-sm text-muted fw-normal">
-                            / {breakdown.pelanggan.max} pts
-                          </span>
-                        </span>
-                      </div>
-                      <div className="progress mb-3 bg-white" style={{ height: "12px", borderRadius: "10px" }}>
-                        <div
-                          className="progress-bar bg-primary rounded-pill"
-                          style={{
-                            width: `${(breakdown.pelanggan.score / breakdown.pelanggan.max) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="d-flex justify-content-between text-muted fs-sm">
-                        <span>
-                          <i className="bi bi-info-circle me-1"></i> {breakdown.pelanggan.desc}
-                        </span>
-                        <span className="fw-bold text-heading">{breakdown.pelanggan.value} pelanggan</span>
-                      </div>
-                    </div>
-
-                    {/* 5. Legalitas */}
-                    <div className="list-group-item p-4 rounded-3 border bg-light">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h6 className="fw-bold mb-0">
-                          <i className="bi bi-shield-check text-danger me-2"></i> Legalitas Usaha
-                        </h6>
-                        <span className="fw-bold fs-5 text-danger">
-                          {breakdown.legalitas.score}{" "}
-                          <span className="fs-sm text-muted fw-normal">
-                            / {breakdown.legalitas.max} pts
-                          </span>
-                        </span>
-                      </div>
-                      <div className="progress mb-3 bg-white" style={{ height: "12px", borderRadius: "10px" }}>
-                        <div
-                          className="progress-bar bg-danger rounded-pill"
-                          style={{
-                            width: `${(breakdown.legalitas.score / breakdown.legalitas.max) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="d-flex justify-content-between text-muted fs-sm">
-                        <span>
-                          <i className="bi bi-info-circle me-1"></i> {breakdown.legalitas.desc}
-                        </span>
-                        <span className="fw-bold text-heading">{breakdown.legalitas.value} sertifikat</span>
-                      </div>
+                    <div className="text-end">
+                       <h3 className="fw-bold mb-0 text-success d-inline-block me-1">{breakdown.omzet.score}</h3>
+                       <span className="text-muted fw-semibold fs-sm">/ {breakdown.omzet.max} pts</span>
                     </div>
                   </div>
+                  
+                  <div className="progress bg-white shadow-sm mb-4 position-relative" style={{ height: "12px", borderRadius: "10px", zIndex: 1, border: "1px solid rgba(0,0,0,0.05)" }}>
+                    <div
+                      className="progress-bar bg-success rounded-pill"
+                      style={{
+                        width: `${(breakdown.omzet.score / breakdown.omzet.max) * 100}%`,
+                        background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)"
+                      }}
+                    ></div>
+                  </div>
+                  
+                  <div className="d-flex justify-content-between align-items-end position-relative" style={{ zIndex: 1 }}>
+                    <span className="badge bg-white text-success border border-success border-opacity-25 shadow-sm rounded-pill px-3 py-2 fs-sm fw-semibold">
+                       <i className="bi bi-graph-up-arrow me-2"></i> {breakdown.omzet.desc}
+                    </span>
+                    <div className="text-end">
+                      <span className="d-block text-muted mb-1" style={{ fontSize: "0.75rem" }}>Total Pendapatan</span>
+                      <span className="fw-bolder fs-4 text-dark" style={{ letterSpacing: "-0.5px" }}>
+                        Rp {breakdown.omzet.value.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Decorative Background Icon */}
+                  <i className="bi bi-wallet2 position-absolute text-success" style={{ fontSize: "12rem", right: "-20px", bottom: "-30px", opacity: 0.05, transform: "rotate(-15deg)", zIndex: 0 }}></i>
                 </div>
+
+                {/* 2. Jadwal Pelatihan & Absensi - Modern Timeline */}
+                <div 
+                  className="p-4 rounded-4 shadow-sm flex-grow-1" 
+                  style={{ 
+                    background: "linear-gradient(to bottom right, #ffffff, #f8fafc)", 
+                    border: "1px solid rgba(0,0,0,0.05)" 
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: "36px", height: "36px" }}>
+                        <i className="bi bi-calendar-check fs-5"></i>
+                      </div>
+                      <h6 className="fw-bold mb-0 text-dark">Riwayat Pelatihan</h6>
+                    </div>
+                  </div>
+                  
+                  {pelatihanList.length === 0 ? (
+                    <div className="text-center py-5">
+                       <div className="bg-secondary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: "64px", height: "64px" }}>
+                         <i className="bi bi-inbox text-muted fs-2 opacity-50"></i>
+                       </div>
+                       <h6 className="text-muted fw-semibold">Belum ada jadwal pelatihan</h6>
+                       <p className="text-muted fs-sm mx-auto" style={{ maxWidth: "250px" }}>Jadwal pelatihan dan event yang Anda ikuti akan muncul di sini.</p>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-column gap-3 position-relative">
+                      {/* Timeline Line Generator */}
+                      <div className="position-absolute h-100" style={{ left: "19px", top: "15px", width: "2px", background: "linear-gradient(to bottom, rgba(79,70,229,0.3) 0%, rgba(79,70,229,0.05) 100%)", zIndex: 0 }}></div>
+                      
+                      {(showAllTrainings ? pelatihanList : pelatihanList.slice(0, 3)).map((p: any) => {
+                        const isUpcoming = new Date(p.tanggal) >= new Date();
+                        const kehadiran = kehadiranList.find((k: any) => k.pelatihan_id === p.id);
+                        
+                        let statusBadge = <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-2 py-1"><i className="bi bi-clock-history me-1"></i>Selesai</span>;
+                        let statusColor = "#94a3b8"; // slate-400
+                        let iconClass = "bi-check2-all";
+
+                        if (!isUpcoming) {
+                          if (kehadiran) {
+                            if (kehadiran.status_hadir === 'hadir') {
+                               statusBadge = <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-1"><i className="bi bi-check-circle-fill me-1"></i>Hadir</span>;
+                               statusColor = "#10b981"; // emerald-500
+                               iconClass = "bi-check-lg";
+                            } else if (kehadiran.status_hadir === 'izin') {
+                               statusBadge = <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-2 py-1"><i className="bi bi-envelope-paper-fill me-1"></i>Izin</span>;
+                               statusColor = "#f59e0b"; // amber-500
+                               iconClass = "bi-envelope";
+                            } else {
+                               statusBadge = <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1"><i className="bi bi-x-circle-fill me-1"></i>Tidak Hadir</span>;
+                               statusColor = "#ef4444"; // red-500
+                               iconClass = "bi-x-lg";
+                            }
+                          } else {
+                            statusBadge = <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1"><i className="bi bi-x-circle-fill me-1"></i>Alpa</span>;
+                            statusColor = "#ef4444";
+                            iconClass = "bi-x-lg";
+                          }
+                        } else {
+                           statusBadge = <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2 py-1"><i className="bi bi-hourglass-split me-1"></i>Segera</span>;
+                           statusColor = "#3b82f6"; // blue-500
+                           iconClass = "bi-calendar-plus";
+                        }
+                        
+                        return (
+                          <div key={p.id} className="d-flex gap-3 align-items-start position-relative" style={{ zIndex: 1 }}>
+                            {/* Timeline Dot */}
+                            <div className="rounded-circle bg-white d-flex align-items-center justify-content-center shadow-sm mt-1" style={{ width: "40px", height: "40px", border: `2.5px solid ${statusColor}`, flexShrink: 0 }}>
+                               <i className={`bi ${iconClass}`} style={{ color: statusColor, fontSize: "1.1rem" }}></i>
+                            </div>
+                            
+                            {/* Card Content */}
+                            <div className="flex-grow-1 p-3 bg-white rounded-4 shadow-sm" style={{ border: "1px solid rgba(0,0,0,0.06)", transition: "transform 0.2s ease, box-shadow 0.2s ease", cursor: "default" }}>
+                              <div className="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                  <h6 className="fw-bold mb-1 text-dark" style={{ lineHeight: "1.4", fontSize: "0.95rem" }}>{p.nama_pelatihan}</h6>
+                                  <div className="text-muted" style={{fontSize: "0.8rem"}}>
+                                    <i className="bi bi-calendar3 text-primary opacity-75 me-1"></i> 
+                                    {new Date(p.tanggal).toLocaleDateString("id-ID", {
+                                      day: "numeric", month: "long", year: "numeric"
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="ms-2 flex-shrink-0">
+                                  {statusBadge}
+                                </div>
+                              </div>
+                              <div className="d-flex flex-wrap gap-3 text-muted mt-3 pt-2 border-top border-opacity-10" style={{fontSize: "0.8rem"}}>
+                                <span className="d-flex align-items-center"><i className="bi bi-geo-alt-fill text-danger opacity-75 me-1 fs-6"></i> {p.lokasi}</span>
+                                <span className="d-flex align-items-center"><i className="bi bi-person-badge-fill text-info opacity-75 me-1 fs-6"></i> {p.pemateri}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {pelatihanList.length > 3 && (
+                        <div className="text-center mt-3 position-relative" style={{ zIndex: 1 }}>
+                            <button 
+                              onClick={() => setShowAllTrainings(!showAllTrainings)}
+                              className="btn rounded-pill px-4 shadow-sm fw-semibold"
+                              style={{ 
+                                border: "1px solid rgba(79,70,229,0.2)", 
+                                fontSize: "0.85rem", 
+                                background: "linear-gradient(to right, #ffffff, #f8fafc)",
+                                color: "#4f46e5"
+                              }}
+                            >
+                              {showAllTrainings ? (
+                                <><i className="bi bi-chevron-up me-1"></i> Sembunyikan</>
+                              ) : (
+                                <><i className="bi bi-chevron-down me-1"></i> Tampilkan Semua ({pelatihanList.length})</>
+                              )}
+                            </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           </div>

@@ -48,7 +48,7 @@ function StaffFormFields({ staff, domisiliKalsel, includePassword = true }: {
       <div className="col-md-6 form-group-custom">
         <label>Role</label>
         <select name="role" className="form-control form-control-custom" defaultValue={staff?.role || "Staff"}>
-          <option value="Staff">Pengguna</option>
+          <option value="Staff">Staff</option>
           <option value="Admin">Admin</option>
         </select>
       </div>

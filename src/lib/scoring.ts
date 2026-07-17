@@ -87,31 +87,30 @@ export async function calculateScore(umkmId: number) {
 
     if (umkmErr || !umkm) return { success: false, message: "UMKM tidak ditemukan" };
 
-    // 2. Fetch latest monitoring
+    // 2. Fetch monitoring for the current month/year
+    const currentDate = new Date();
+    const indonesianMonths = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const currentMonthName = indonesianMonths[currentDate.getMonth()];
+    const currentYear = currentDate.getFullYear();
+
     const { data: monitoring } = await supabaseAdmin
       .from("monitoring")
       .select("*")
       .eq("umkm_id", umkmId)
-      .order("tahun", { ascending: false })
-      .order("bulan", { ascending: false })
+      .eq("bulan", currentMonthName)
+      .eq("tahun", currentYear)
       .limit(1);
 
-    const latestMonitoring = monitoring && monitoring.length > 0 ? monitoring[0] : null;
+    const currentMonitoring = monitoring && monitoring.length > 0 ? monitoring[0] : null;
 
     // 3. Fetch dynamic scoring rules from DB
     const rules = await fetchScoringRules();
 
     let score = 0;
-    
-    // Monthly Reset Logic: Only count monitoring stats if they belong to the current month/year
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1; // 1-12
-    const currentYear = currentDate.getFullYear();
-    const isCurrentMonth = latestMonitoring && latestMonitoring.bulan === currentMonth && latestMonitoring.tahun === currentYear;
 
     // Calculate Score dynamically based on rules (Only Omzet as requested)
     if (rules.omzet) {
-      const omzetValue = isCurrentMonth ? (latestMonitoring?.omzet || 0) : 0;
+      const omzetValue = currentMonitoring ? (currentMonitoring.omzet || 0) : 0;
       score += matchRule(omzetValue, rules.omzet);
     }
 
@@ -164,7 +163,7 @@ export async function calculateScore(umkmId: number) {
 
     if (apiKey) {
       try {
-        const omzetStr = (isCurrentMonth && latestMonitoring?.omzet) ? Number(latestMonitoring.omzet).toLocaleString("id-ID") : "0";
+        const omzetStr = currentMonitoring?.omzet ? Number(currentMonitoring.omzet).toLocaleString("id-ID") : "0";
         const prompt = `Berikan 1 paragraf rekomendasi singkat (maks 30 kata) untuk UMKM '${umkm.nama_umkm}' yang memiliki skor usaha ${score}. Deskripsi usaha: ${umkm.deskripsi || "Perdagangan"}. Status: ${status}. Omzet bulanan tercatat: Rp ${omzetStr}. Fokus pada langkah konkret berikutnya.`;
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
