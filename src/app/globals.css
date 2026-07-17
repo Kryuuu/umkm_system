@@ -3420,6 +3420,7 @@ select.form-control-custom {
     /* Fix backdrop-filter on iOS */
     .sidebar-overlay {
         -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
     }
 
     /* Prevent iOS page bounce on sidebar */

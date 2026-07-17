@@ -5,7 +5,6 @@ import { jwtVerify } from "jose";
 import ReportClient, { type ReportPayload, type ReportType } from "./ReportClient";
 
 const REPORT_TYPES: ReportType[] = [
-  "fasilitator",
   "umkm",
   "produk",
   "perkembangan",
@@ -59,30 +58,6 @@ function buildLeaderboard(umkm: Row[], monitoring: Row[], produk: Row[]) {
 }
 
 async function getReportData(type: ReportType): Promise<ReportPayload> {
-  if (type === "fasilitator") {
-    const [fasilitatorResult, umkmResult] = await Promise.all([
-      supabaseAdmin
-        .from("fasilitator")
-        .select("id, nickname, domisili, role")
-        .order("nickname"),
-      supabaseAdmin.from("umkm").select("id, fasilitator_id, skor_usaha"),
-    ]);
-    if (fasilitatorResult.error) throw fasilitatorResult.error;
-    if (umkmResult.error) throw umkmResult.error;
-
-    const umkm = umkmResult.data || [];
-    const rows = (fasilitatorResult.data || []).map((staff) => {
-      const binaan = umkm.filter((item) => item.fasilitator_id === staff.id);
-      const totalSkor = binaan.reduce((sum, item) => sum + Number(item.skor_usaha || 0), 0);
-      return {
-        ...staff,
-        total_umkm: binaan.length,
-        avg_skor: binaan.length ? totalSkor / binaan.length : 0,
-      };
-    }).sort((a, b) => b.total_umkm - a.total_umkm);
-    return { rows };
-  }
-
   if (type === "umkm") {
     const { data, error } = await supabaseAdmin
       .from("umkm")
@@ -228,7 +203,7 @@ async function getReportData(type: ReportType): Promise<ReportPayload> {
 
 export default async function ReportPage({ params }: PageProps<"/dashboard/laporan/[type]">) {
   const { type: rawType } = await params;
-  if (!REPORT_TYPES.includes(rawType as ReportType)) redirect("/dashboard/laporan/fasilitator");
+  if (!REPORT_TYPES.includes(rawType as ReportType)) redirect("/dashboard/laporan/umkm");
 
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;

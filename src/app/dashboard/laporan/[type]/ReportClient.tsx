@@ -5,7 +5,6 @@ import Image from "next/image";
 import Chart from "chart.js/auto";
 
 export type ReportType =
-  | "fasilitator"
   | "umkm"
   | "produk"
   | "perkembangan"
@@ -33,7 +32,6 @@ type Column = {
 };
 
 const REPORT_META: Record<ReportType, { title: string; description: string }> = {
-  fasilitator: { title: "Laporan Kinerja Staff UMKM", description: "Rekap beban binaan dan rata-rata skor UMKM" },
   umkm: { title: "Laporan Data UMKM Binaan", description: "Profil, legalitas, status, dan skor UMKM" },
   produk: { title: "Laporan Data Produk UMKM", description: "Rekap produk yang terdaftar pada sistem" },
   perkembangan: { title: "Laporan Perkembangan Usaha UMKM", description: "Rekap monitoring usaha per periode" },
@@ -121,16 +119,6 @@ function standardColumns(type: ReportType): Column[] {
   const no: Column = { label: "No", className: "text-center report-col-no", render: (_row, index) => index + 1 };
 
   switch (type) {
-    case "fasilitator":
-      return [
-        no,
-        { label: "Nama Staff", render: (row) => <strong>{text(row.nickname)}</strong> },
-        { label: "Domisili", render: (row) => text(row.domisili) },
-        { label: "Role", render: (row) => <Badge>{text(row.role)}</Badge> },
-        { label: "Total UMKM", className: "text-center", render: (row) => number(row.total_umkm) },
-        { label: "Rata-rata Skor", className: "text-center", render: (row) => <strong>{number(row.avg_skor, 1)}</strong> },
-        { label: "Predikat", render: (row) => <Badge tone={scoreTone(Number(row.avg_skor))}>{prediction(Number(row.avg_skor))}</Badge> },
-      ];
     case "umkm":
       return [
         { label: "ID", render: (row) => shortId(row.id) },

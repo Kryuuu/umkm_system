@@ -127,7 +127,7 @@ export default async function DataUMKMPage() {
                   <table className="table-custom data-table" style={{width:'100%'}}>
                       <thead>
                           <tr>
-                              <th>ID</th>
+                              <th>No</th>
                               <th>Nama UMKM</th>
                               <th>Pemilik</th>
                               <th>Telepon</th>

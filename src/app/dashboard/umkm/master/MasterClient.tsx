@@ -152,7 +152,7 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
                   <table className="table-custom data-table" style={{width:'100%'}}>
                       <thead>
                           <tr>
-                              <th>No</th>
+                              <th>ID</th>
                               <th>Username</th>
                               <th>Nama UMKM</th>
                               <th>Pemilik</th>
@@ -165,10 +165,11 @@ export default function MasterClient({ umkmList, fasilitatorList }: { umkmList: 
                           {umkmList.map((u, idx) => (
                           <tr key={u.id}>
                               <td>
-                                <div className="d-flex flex-column align-items-start">
-                                  <span>{idx + 1}</span>
-                                  {u.id_umkm && <code className="text-primary mt-1 px-1 bg-primary bg-opacity-10 rounded" style={{fontSize: '0.7rem'}}>{u.id_umkm}</code>}
-                                </div>
+                                {u.id_umkm ? (
+                                  <span className="badge bg-primary bg-opacity-10 text-primary fw-bold" style={{fontSize: '0.8rem'}}>{u.id_umkm}</span>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
                               </td>
                               <td><strong>{u.username}</strong></td>
                               <td>{u.nama_umkm}</td>

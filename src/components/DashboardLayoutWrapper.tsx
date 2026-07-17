@@ -350,7 +350,6 @@ export default function DashboardLayoutWrapper({
                   <i className="bi bi-chevron-right nav-arrow"></i>
                 </a>
                 <div className={`nav-submenu ${isLaporanActive || laporanExpanded ? 'show' : ''}`} id="laporanSubmenu">
-                  <Link href="/dashboard/laporan/fasilitator" className={`nav-item ${isActive('/dashboard/laporan/fasilitator')}`}><i className="bi bi-dot"></i> Kinerja Staff</Link>
                   <Link href="/dashboard/laporan/umkm" className={`nav-item ${isActive('/dashboard/laporan/umkm')}`}><i className="bi bi-dot"></i> UMKM Binaan</Link>
                   <Link href="/dashboard/laporan/produk" className={`nav-item ${isActive('/dashboard/laporan/produk')}`}><i className="bi bi-dot"></i> Produk UMKM</Link>
                   <Link href="/dashboard/laporan/perkembangan" className={`nav-item ${isActive('/dashboard/laporan/perkembangan')}`}><i className="bi bi-dot"></i> Perkembangan</Link>
