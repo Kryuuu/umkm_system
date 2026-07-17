@@ -170,7 +170,7 @@ export default function KonsultasiClient({
                                           <h6 className="mb-1 fw-bold text-dark">{conv.subjek}</h6>
                                           <p className="mb-0 text-muted small">{conv.latest_message?.substring(0, 120)}...</p>
                                       </div>
-                                      <div className="text-end flex-shrink-0 d-flex flex-column align-items-end justify-content-between h-100" style={{minWidth: '150px'}}>
+                                      <div className="text-end flex-shrink-0 d-flex flex-column align-items-end justify-content-between h-100" style={{minWidth: '120px', maxWidth: '180px'}}>
                                           <div className="mb-2">
                                               <small className="text-muted">{formatDate(conv.latest_timestamp)}</small>
                                               {conv.unread_count > 0 && (
@@ -207,7 +207,7 @@ export default function KonsultasiClient({
                                           <h6 className="mb-1 fw-bold">{thread.subjek}</h6>
                                           <p className="mb-0 text-muted small">{thread.pesan?.substring(0, 120)}...</p>
                                       </Link>
-                                      <div className="text-end flex-shrink-0 d-flex flex-column align-items-end justify-content-between h-100" style={{minWidth: '120px'}}>
+                                      <div className="text-end flex-shrink-0 d-flex flex-column align-items-end justify-content-between h-100" style={{minWidth: '100px', maxWidth: '150px'}}>
                                           <div className="mb-2">
                                               <small className="text-muted">{formatDate(thread.created_at)}</small>
                                               {!thread.is_read && thread.pengirim_role !== user.role && <><br /><span className="badge bg-primary rounded-pill mt-1">Baru</span></>}

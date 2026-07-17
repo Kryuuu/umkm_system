@@ -94,7 +94,7 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
       <div className="panel">
         <div
           className="panel-body"
-          style={{ maxHeight: "500px", overflowY: "auto" }}
+          style={{ maxHeight: "65vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}
           id="chatContainer"
           ref={chatContainerRef}
         >
@@ -107,7 +107,7 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
                 className={`card border-0 shadow-sm ${
                   msg.pengirim_role === user.role ? "bg-primary text-white" : "bg-light"
                 }`}
-                style={{ maxWidth: "75%", borderRadius: "16px" }}
+                style={{ maxWidth: "min(85%, 500px)", borderRadius: "16px" }}
               >
                 <div className="card-body py-2 px-3">
                   <div className="d-flex justify-content-between align-items-center mb-1">
@@ -148,15 +148,15 @@ export default function ThreadClient({ parentMessage, thread, user }: { parentMe
         <div className="panel-body">
           <form onSubmit={handleReply}>
             <input type="hidden" name="parent_id" value={parentMessage.id} />
-            <div className="d-flex gap-2">
+            <div className="d-flex flex-column flex-sm-row gap-2">
               <textarea
                 name="pesan"
-                className="form-control"
+                className="form-control flex-grow-1"
                 rows={2}
                 required
                 placeholder="Tulis balasan..."
               ></textarea>
-              <button type="submit" className="btn btn-primary align-self-end rounded-pill px-4">
+              <button type="submit" className="btn btn-primary align-self-sm-end rounded-pill px-4">
                 <i className="bi bi-send-fill"></i> Kirim
               </button>
             </div>

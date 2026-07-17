@@ -5,15 +5,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Default hardcoded rules as fallback when DB table doesn't exist yet
 const FALLBACK_RULES = {
   omzet: [
-    { kondisi_min: 25000000, kondisi_max: null, poin: 100 },
-    { kondisi_min: 15000000, kondisi_max: 25000000, poin: 85 },
-    { kondisi_min: 10000000, kondisi_max: 15000000, poin: 70 },
-    { kondisi_min: 5000000, kondisi_max: 10000000, poin: 50 },
-    { kondisi_min: 2000000, kondisi_max: 5000000, poin: 30 },
-    { kondisi_min: 0, kondisi_max: 2000000, poin: 15 },
+    { kondisi_min: 25000000, kondisi_max: null, poin: 100, label: 'Omzet >= Rp 25.000.000', max_poin: 100, is_active: true },
+    { kondisi_min: 15000000, kondisi_max: 25000000, poin: 85, label: 'Omzet >= Rp 15.000.000', max_poin: 100, is_active: true },
+    { kondisi_min: 10000000, kondisi_max: 15000000, poin: 70, label: 'Omzet >= Rp 10.000.000', max_poin: 100, is_active: true },
+    { kondisi_min: 5000000, kondisi_max: 10000000, poin: 50, label: 'Omzet >= Rp 5.000.000', max_poin: 100, is_active: true },
+    { kondisi_min: 2000000, kondisi_max: 5000000, poin: 30, label: 'Omzet >= Rp 2.000.000', max_poin: 100, is_active: true },
+    { kondisi_min: 0, kondisi_max: 2000000, poin: 15, label: 'Omzet < Rp 2.000.000', max_poin: 100, is_active: true },
   ],
 };
 
@@ -22,14 +21,16 @@ type RuleRow = {
   kondisi_min: number;
   kondisi_max: number | null;
   poin: number;
+  label: string;
+  max_poin: number | null;
   is_active: boolean;
 };
 
-async function fetchScoringRules(): Promise<Record<string, RuleRow[]>> {
+export async function fetchScoringRules(): Promise<Record<string, RuleRow[]>> {
   try {
     const { data, error } = await supabaseAdmin
       .from("scoring_rules")
-      .select("kategori, kondisi_min, kondisi_max, poin, is_active")
+      .select("kategori, kondisi_min, kondisi_max, poin, label, max_poin, is_active")
       .eq("is_active", true)
       .order("kategori")
       .order("urutan");
@@ -51,8 +52,20 @@ async function fetchScoringRules(): Promise<Record<string, RuleRow[]>> {
   }
 }
 
-function matchRule(value: number, rules: RuleRow[]): number {
-  // Rules are ordered by urutan (highest threshold first)
+export function matchRule(value: number, rules: RuleRow[]): number {
+  if (!rules || rules.length === 0) return 0;
+
+  // Temukan rule tertinggi berdasarkan kondisi_min
+  const sortedRules = [...rules].sort((a, b) => Number(b.kondisi_min) - Number(a.kondisi_min));
+  const highestRule = sortedRules[0];
+
+  // Jika nilai melebihi rule tertinggi yang tidak memiliki batas atas, kalikan poinnya secara proporsional
+  if (highestRule && highestRule.kondisi_max === null && value > Number(highestRule.kondisi_min) && Number(highestRule.kondisi_min) > 0) {
+    const scale = value / Number(highestRule.kondisi_min);
+    return Math.floor(scale * Number(highestRule.poin));
+  }
+
+  // Pencarian rule normal
   for (const rule of rules) {
     const min = Number(rule.kondisi_min) || 0;
     const max = rule.kondisi_max != null ? Number(rule.kondisi_max) : null;
@@ -74,7 +87,7 @@ export async function calculateScore(umkmId: number) {
 
     if (umkmErr || !umkm) return { success: false, message: "UMKM tidak ditemukan" };
 
-    // 2. Fetch latest monitoring (for omzet)
+    // 2. Fetch latest monitoring
     const { data: monitoring } = await supabaseAdmin
       .from("monitoring")
       .select("*")
@@ -89,11 +102,17 @@ export async function calculateScore(umkmId: number) {
     const rules = await fetchScoringRules();
 
     let score = 0;
+    
+    // Monthly Reset Logic: Only count monitoring stats if they belong to the current month/year
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1; // 1-12
+    const currentYear = currentDate.getFullYear();
+    const isCurrentMonth = latestMonitoring && latestMonitoring.bulan === currentMonth && latestMonitoring.tahun === currentYear;
 
-    // Hitung Skor Hanya Berdasarkan Omzet
-    if (latestMonitoring && rules.omzet) {
-      const omzet = latestMonitoring.omzet || 0;
-      score += matchRule(omzet, rules.omzet);
+    // Calculate Score dynamically based on rules (Only Omzet as requested)
+    if (rules.omzet) {
+      const omzetValue = isCurrentMonth ? (latestMonitoring?.omzet || 0) : 0;
+      score += matchRule(omzetValue, rules.omzet);
     }
 
     // Determine status (Go Modern → Go Digital → Go Online → Go Global)
@@ -124,7 +143,7 @@ export async function calculateScore(umkmId: number) {
         target_id: umkmId,
         tipe: "naik_kelas",
         judul: "Selamat! UMKM Anda Naik Kelas 🎉",
-        pesan: `UMKM "${umkm.nama_umkm}" telah naik dari level ${oldStatus} ke ${status}! Skor usaha: ${score}/100.`
+        pesan: `UMKM "${umkm.nama_umkm}" telah naik dari level ${oldStatus} ke ${status}! Skor usaha saat ini: ${score}.`
       });
 
       // Notify Fasilitator
@@ -134,7 +153,7 @@ export async function calculateScore(umkmId: number) {
           target_id: umkm.fasilitator_id,
           tipe: "naik_kelas",
           judul: "UMKM Binaan Naik Kelas 🎉",
-          pesan: `UMKM "${umkm.nama_umkm}" telah naik dari level ${oldStatus} to ${status}! Skor usaha: ${score}/100.`
+          pesan: `UMKM "${umkm.nama_umkm}" telah naik dari level ${oldStatus} to ${status}! Skor usaha saat ini: ${score}.`
         });
       }
     }
@@ -145,7 +164,8 @@ export async function calculateScore(umkmId: number) {
 
     if (apiKey) {
       try {
-        const prompt = `Berikan 1 paragraf rekomendasi singkat (maks 30 kata) untuk UMKM '${umkm.nama_umkm}' yang memiliki skor usaha ${score} dari 100. Deskripsi usaha: ${umkm.deskripsi || "Perdagangan"}. Status: ${status}. Omzet bulanan: Rp ${latestMonitoring?.omzet ? Number(latestMonitoring.omzet).toLocaleString("id-ID") : "0"}. Fokus pada langkah konkret berikutnya.`;
+        const omzetStr = (isCurrentMonth && latestMonitoring?.omzet) ? Number(latestMonitoring.omzet).toLocaleString("id-ID") : "0";
+        const prompt = `Berikan 1 paragraf rekomendasi singkat (maks 30 kata) untuk UMKM '${umkm.nama_umkm}' yang memiliki skor usaha ${score}. Deskripsi usaha: ${umkm.deskripsi || "Perdagangan"}. Status: ${status}. Omzet bulanan tercatat: Rp ${omzetStr}. Fokus pada langkah konkret berikutnya.`;
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
           {

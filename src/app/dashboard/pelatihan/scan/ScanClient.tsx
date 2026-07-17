@@ -363,7 +363,7 @@ export default function ScanClient({ user }: { user: any }) {
         }
       `}</style>
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
           <h5 className="fw-bold mb-1 text-heading">Absensi Kehadiran Pelatihan</h5>
           <p className="text-muted fs-sm mb-0">Pindai QR Code kehadiran menggunakan kamera perangkat Anda</p>

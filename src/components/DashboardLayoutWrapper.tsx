@@ -392,7 +392,7 @@ export default function DashboardLayoutWrapper({
       <main className="main-content">
         <header className="top-header">
           <div>
-            <button className="btn-toggle-sidebar" id="toggleSidebar" onClick={() => setSidebarActive(!sidebarActive)} style={{ display: 'inline-block', marginRight: '15px' }}>
+            <button className="btn-toggle-sidebar" id="toggleSidebar" onClick={() => setSidebarActive(!sidebarActive)} style={{ marginRight: '12px' }}>
               <i className="bi bi-list"></i>
             </button>
             <span className="page-title">UMKM Monitor</span>

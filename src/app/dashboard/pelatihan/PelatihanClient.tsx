@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPelatihan, updatePelatihan, deletePelatihan } from "./actions";
@@ -115,6 +115,24 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
       return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  // Compute stats
+  const stats = useMemo(() => {
+    const today = new Date();
+    const thisMonth = today.getMonth();
+    const thisYear = today.getFullYear();
+    const todayStr = today.toISOString().split('T')[0];
+
+    const bulanIni = pelatihanList.filter(p => {
+      const d = new Date(p.tanggal);
+      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    }).length;
+
+    const upcoming = pelatihanList.filter(p => p.tanggal >= todayStr).length;
+    const withMateri = pelatihanList.filter(p => p.file_materi).length;
+
+    return { total: pelatihanList.length, bulanIni, upcoming, withMateri };
+  }, [pelatihanList]);
+
   // Re-initialize jQuery DataTable on pelatihanList changes using leaf node DOM
   useEffect(() => {
     if (typeof window !== "undefined" && window.$) {
@@ -129,56 +147,103 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
     }
 
     const showAksi = user.role !== 'Mitra';
+
+    const getDateParts = (dateString: string) => {
+      const d = new Date(dateString);
+      return {
+        day: d.getDate().toString().padStart(2, '0'),
+        month: d.toLocaleDateString('id-ID', { month: 'short' }),
+        year: d.getFullYear()
+      };
+    };
+
+    const getStatusInfo = (dateString: string) => {
+      const today = new Date().toISOString().split('T')[0];
+      if (dateString < today) return { text: 'Selesai', color: '#059669', bg: 'rgba(16,185,129,0.08)', icon: 'bi-check-circle-fill' };
+      if (dateString === today) return { text: 'Hari Ini', color: '#d97706', bg: 'rgba(245,158,11,0.08)', icon: 'bi-broadcast' };
+      return { text: 'Mendatang', color: '#4f46e5', bg: 'rgba(79,70,229,0.08)', icon: 'bi-clock' };
+    };
+
     const tableHtml = `
-      <table id="pelatihan-table" class="table-custom" style="width:100%">
+      <table id="pelatihan-table" class="table-custom pelatihan-table-premium" style="width:100%">
           <thead>
               <tr>
-                  <th>No</th>
-                  <th>Nama Pelatihan</th>
+                  <th style="width:48px">No</th>
+                  <th>Pelatihan</th>
                   <th>Tanggal</th>
                   <th>Pemateri</th>
                   <th>Lokasi</th>
-                  <th>Materi</th>
-                  ${showAksi ? '<th>Aksi</th>' : ''}
+                  <th style="width:100px">Materi</th>
+                  ${showAksi ? '<th style="width:160px">Aksi</th>' : ''}
               </tr>
           </thead>
           <tbody>
-              ${pelatihanList.map((p, idx) => `
+              ${pelatihanList.map((p, idx) => {
+                const dp = getDateParts(p.tanggal);
+                const st = getStatusInfo(p.tanggal);
+                return `
               <tr data-id="${p.id}">
-                  <td>${idx + 1}</td>
-                  <td><strong>${p.nama_pelatihan}</strong></td>
-                  <td>${formatDate(p.tanggal)}</td>
-                  <td>${p.pemateri}</td>
-                  <td>${p.lokasi}</td>
                   <td>
+                    <span class="pelatihan-row-num">${idx + 1}</span>
+                  </td>
+                  <td>
+                    <div class="pelatihan-name-cell">
+                      <strong class="pelatihan-title">${p.nama_pelatihan}</strong>
+                      <span class="pelatihan-status-pill" style="color:${st.color};background:${st.bg}">
+                        <i class="bi ${st.icon}" style="font-size:0.55rem"></i> ${st.text}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="pelatihan-date-badge">
+                      <span class="pelatihan-date-day">${dp.day}</span>
+                      <div class="pelatihan-date-meta">
+                        <span class="pelatihan-date-month">${dp.month}</span>
+                        <span class="pelatihan-date-year">${dp.year}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="pelatihan-pemateri">
+                      <span class="pelatihan-pemateri-avatar">${(p.pemateri || 'N')[0].toUpperCase()}</span>
+                      <span>${p.pemateri}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="pelatihan-lokasi">
+                      <i class="bi bi-geo-alt-fill text-danger" style="font-size:0.7rem"></i>
+                      <span>${p.lokasi}</span>
+                    </div>
+                  </td>
+                  <td class="text-center">
                       ${p.file_materi ? `
-                          <a href="/uploads/materi/${p.file_materi}" class="btn btn-sm btn-outline-success rounded-pill" download title="Download Materi">
-                              <i class="bi bi-download"></i> Unduh
+                          <a href="/uploads/materi/${p.file_materi}" class="pelatihan-dl-btn" download title="Download Materi">
+                              <i class="bi bi-cloud-arrow-down-fill"></i> Unduh
                           </a>
                       ` : `
-                          <span class="text-muted small">-</span>
+                          <span class="text-muted" style="font-size:0.75rem">—</span>
                       `}
                   </td>
                   ${showAksi ? `
                   <td>
-                      <div class="d-flex gap-1">
-                          <button class="btn-success-custom btn-kehadiran" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="Kehadiran">
-                              <i class="bi bi-clipboard-check"></i>
+                      <div class="pelatihan-actions">
+                          <button class="pelatihan-act-btn act-kehadiran btn-kehadiran" data-id="${p.id}" title="Kehadiran">
+                              <i class="bi bi-clipboard-check-fill"></i>
                           </button>
-                          <button class="btn-qr-code" data-id="${p.id}" style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="QR Code Live Presenter">
+                          <button class="pelatihan-act-btn act-qr btn-qr-code" data-id="${p.id}" title="QR Code Live">
                               <i class="bi bi-qr-code"></i>
                           </button>
-                          <button class="btn-warning-custom btn-edit" data-index="${idx}" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="Edit">
-                              <i class="bi bi-pencil"></i>
+                          <button class="pelatihan-act-btn act-edit btn-edit" data-index="${idx}" title="Edit">
+                              <i class="bi bi-pencil-fill"></i>
                           </button>
-                          <button class="btn-danger-custom btn-delete" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.85rem;" title="Hapus">
-                              <i class="bi bi-trash"></i>
+                          <button class="pelatihan-act-btn act-delete btn-delete" data-id="${p.id}" title="Hapus">
+                              <i class="bi bi-trash3-fill"></i>
                           </button>
                       </div>
                   </td>
                   ` : ''}
               </tr>
-              `).join('')}
+              `}).join('')}
           </tbody>
        </table>
     `;
@@ -245,52 +310,87 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
 
   return (
     <>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      {/* ── Hero Banner ── */}
+      <div className="pelatihan-hero">
+        <div className="pelatihan-hero-bg"></div>
+        <div className="pelatihan-hero-content">
           <div>
-              <h5 className="fw-bold mb-1">Pelatihan UMKM</h5>
-              <p className="text-muted fs-sm mb-0">Kelola program pelatihan UMKM</p>
+            <div className="pelatihan-hero-eyebrow">MANAJEMEN PELATIHAN</div>
+            <h3 className="pelatihan-hero-title">Program Pelatihan UMKM</h3>
+            <p className="pelatihan-hero-sub">Kelola, pantau, dan evaluasi seluruh program pelatihan untuk pengembangan kapasitas UMKM Binaan.</p>
           </div>
-          {user.role !== 'Mitra' ? (
-          <button className="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addPelatihanModal">
-              <i className="bi bi-plus-lg"></i> Tambah Pelatihan
-          </button>
-          ) : (
-          <Link 
-            href="/dashboard/pelatihan/scan" 
-            className="btn rounded-pill px-4 fs-sm fw-semibold shadow-sm text-white d-flex align-items-center"
-            style={{ background: 'linear-gradient(135deg, #4f46e5, #9333ea)', border: 'none', padding: '8px 20px' }}
-          >
-            <i className="bi bi-qr-code-scan me-2"></i> Scan Absensi
-          </Link>
-          )}
+          <div className="pelatihan-hero-action">
+            {user.role !== 'Mitra' ? (
+              <button className="pelatihan-hero-btn" data-bs-toggle="modal" data-bs-target="#addPelatihanModal">
+                <i className="bi bi-plus-lg"></i> Tambah Pelatihan
+              </button>
+            ) : (
+              <Link href="/dashboard/pelatihan/scan" className="pelatihan-hero-btn pelatihan-hero-btn-scan">
+                <i className="bi bi-qr-code-scan"></i> Scan Absensi
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="panel">
+      {/* ── Stat Cards ── */}
+      <div className="row g-3 mb-4">
+        {[
+          { icon: 'bi-mortarboard-fill', label: 'Total Pelatihan', value: stats.total, color: '#4f46e5', bg: 'rgba(79,70,229,0.08)' },
+          { icon: 'bi-calendar-check-fill', label: 'Bulan Ini', value: stats.bulanIni, color: '#059669', bg: 'rgba(16,185,129,0.08)' },
+          { icon: 'bi-clock-fill', label: 'Akan Datang', value: stats.upcoming, color: '#d97706', bg: 'rgba(245,158,11,0.08)' },
+          { icon: 'bi-file-earmark-text-fill', label: 'Memiliki Materi', value: stats.withMateri, color: '#0284c7', bg: 'rgba(14,165,233,0.08)' },
+        ].map((s, i) => (
+          <div className="col-6 col-lg-3" key={i}>
+            <div className="pelatihan-stat-card">
+              <div className="pelatihan-stat-icon" style={{ color: s.color, background: s.bg }}>
+                <i className={`bi ${s.icon}`}></i>
+              </div>
+              <div>
+                <div className="pelatihan-stat-value">{s.value}</div>
+                <div className="pelatihan-stat-label">{s.label}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Table Panel ── */}
+      <div className="panel border-0 shadow-sm rounded-4">
+          <div className="panel-header border-bottom-0 d-flex align-items-center gap-2 px-4 pt-4 pb-2">
+            <i className="bi bi-table text-primary"></i>
+            <h5 className="fw-bold mb-0" style={{fontSize:'0.95rem'}}>Daftar Pelatihan</h5>
+          </div>
           <div className="panel-body p-0">
-              <div className="table-responsive p-3" ref={tableContainerRef}></div>
+              <div className="table-responsive p-3 pt-1" ref={tableContainerRef}></div>
           </div>
       </div>
 
       {/* Add Modal */}
       <div className="modal fade" id="addPelatihanModal" tabIndex={-1}>
-          <div className="modal-dialog">
-              <div className="modal-content">
-                   <div className="modal-header">
-                       <h5 className="modal-title"><i className="bi bi-plus-circle text-primary me-2"></i>Tambah Pelatihan</h5>
+          <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{borderRadius:'20px'}}>
+                   <div className="modal-header border-0 pb-0 pt-4 px-4">
+                       <div>
+                         <h5 className="modal-title fw-bold"><i className="bi bi-plus-circle-fill text-primary me-2"></i>Tambah Pelatihan Baru</h5>
+                         <p className="text-muted fs-xs mb-0 mt-1">Isi formulir di bawah untuk menambahkan program pelatihan</p>
+                       </div>
                        <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
                    </div>
                    <form onSubmit={handleCreate}>
-                       <div className="modal-body">
-                           <div className="form-group-custom mb-3"><label>Nama Pelatihan</label><input type="text" name="nama_pelatihan" className="form-control form-control-custom" required /></div>
-                           <div className="form-group-custom mb-3"><label>Tanggal</label><input type="date" name="tanggal" className="form-control form-control-custom" required /></div>
-                           <div className="form-group-custom mb-3"><label>Pemateri</label><input type="text" name="pemateri" className="form-control form-control-custom" required /></div>
-                           <div className="form-group-custom mb-3"><label>Lokasi</label><input type="text" name="lokasi" className="form-control form-control-custom" required /></div>
-                           <div className="form-group-custom mb-3"><label>Deskripsi</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2}></textarea></div>
-                           <div className="form-group-custom mb-3"><label>File Materi (PDF/DOC)</label><input type="file" name="file_materi" className="form-control form-control-custom" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" /></div>
+                       <div className="modal-body px-4 pt-3">
+                           <div className="row g-3">
+                             <div className="col-12"><div className="form-group-custom"><label>Nama Pelatihan</label><input type="text" name="nama_pelatihan" className="form-control form-control-custom" required placeholder="Contoh: Seminar Digital Marketing" /></div></div>
+                             <div className="col-sm-6"><div className="form-group-custom"><label>Tanggal</label><input type="date" name="tanggal" className="form-control form-control-custom" required /></div></div>
+                             <div className="col-sm-6"><div className="form-group-custom"><label>Pemateri</label><input type="text" name="pemateri" className="form-control form-control-custom" required placeholder="Nama pemateri" /></div></div>
+                             <div className="col-12"><div className="form-group-custom"><label>Lokasi</label><input type="text" name="lokasi" className="form-control form-control-custom" required placeholder="Lokasi acara" /></div></div>
+                             <div className="col-12"><div className="form-group-custom"><label>Deskripsi</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2} placeholder="Deskripsi singkat pelatihan (opsional)"></textarea></div></div>
+                             <div className="col-12"><div className="form-group-custom"><label>File Materi (PDF/DOC)</label><input type="file" name="file_materi" className="form-control form-control-custom" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" /></div></div>
+                           </div>
                        </div>
-                       <div className="modal-footer">
-                           <button type="button" className="btn-outline-custom" data-bs-dismiss="modal">Batal</button>
-                           <button type="submit" className="btn-primary-custom"><i className="bi bi-check-lg"></i> Simpan</button>
+                       <div className="modal-footer border-0 px-4 pb-4 pt-2">
+                           <button type="button" className="btn-outline-custom rounded-pill" data-bs-dismiss="modal">Batal</button>
+                           <button type="submit" className="btn-primary-custom rounded-pill"><i className="bi bi-check-lg"></i> Simpan</button>
                        </div>
                    </form>
               </div>
@@ -299,25 +399,30 @@ export default function PelatihanClient({ pelatihanList, user }: { pelatihanList
 
       {/* Edit Modal */}
       <div className="modal fade" id="editPelatihanModal" tabIndex={-1}>
-          <div className="modal-dialog">
-              <div className="modal-content">
-                   <div className="modal-header">
-                       <h5 className="modal-title"><i className="bi bi-pencil-square text-warning me-2"></i>Edit Pelatihan</h5>
+          <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{borderRadius:'20px'}}>
+                   <div className="modal-header border-0 pb-0 pt-4 px-4">
+                       <div>
+                         <h5 className="modal-title fw-bold"><i className="bi bi-pencil-square text-warning me-2"></i>Edit Pelatihan</h5>
+                         <p className="text-muted fs-xs mb-0 mt-1">Perbarui informasi pelatihan yang sudah ada</p>
+                       </div>
                        <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
                    </div>
                    <form onSubmit={handleUpdate}>
                        <input type="hidden" name="id" value={editData?.id || ''} />
-                       <div className="modal-body">
-                           <div className="form-group-custom mb-3"><label>Nama Pelatihan</label><input type="text" name="nama_pelatihan" className="form-control form-control-custom" required defaultValue={editData?.nama_pelatihan || ''} /></div>
-                           <div className="form-group-custom mb-3"><label>Tanggal</label><input type="date" name="tanggal" className="form-control form-control-custom" required defaultValue={editData?.tanggal || ''} /></div>
-                           <div className="form-group-custom mb-3"><label>Pemateri</label><input type="text" name="pemateri" className="form-control form-control-custom" required defaultValue={editData?.pemateri || ''} /></div>
-                           <div className="form-group-custom mb-3"><label>Lokasi</label><input type="text" name="lokasi" className="form-control form-control-custom" required defaultValue={editData?.lokasi || ''} /></div>
-                           <div className="form-group-custom mb-3"><label>Deskripsi</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2} defaultValue={editData?.deskripsi || ''}></textarea></div>
-                           <div className="form-group-custom mb-3"><label>File Materi (PDF/DOC)</label><input type="file" name="file_materi" className="form-control form-control-custom" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" /><small className="text-muted">Kosongkan jika tidak ingin mengganti file</small></div>
+                       <div className="modal-body px-4 pt-3">
+                           <div className="row g-3">
+                             <div className="col-12"><div className="form-group-custom"><label>Nama Pelatihan</label><input type="text" name="nama_pelatihan" className="form-control form-control-custom" required defaultValue={editData?.nama_pelatihan || ''} /></div></div>
+                             <div className="col-sm-6"><div className="form-group-custom"><label>Tanggal</label><input type="date" name="tanggal" className="form-control form-control-custom" required defaultValue={editData?.tanggal || ''} /></div></div>
+                             <div className="col-sm-6"><div className="form-group-custom"><label>Pemateri</label><input type="text" name="pemateri" className="form-control form-control-custom" required defaultValue={editData?.pemateri || ''} /></div></div>
+                             <div className="col-12"><div className="form-group-custom"><label>Lokasi</label><input type="text" name="lokasi" className="form-control form-control-custom" required defaultValue={editData?.lokasi || ''} /></div></div>
+                             <div className="col-12"><div className="form-group-custom"><label>Deskripsi</label><textarea name="deskripsi" className="form-control form-control-custom" rows={2} defaultValue={editData?.deskripsi || ''}></textarea></div></div>
+                             <div className="col-12"><div className="form-group-custom"><label>File Materi (PDF/DOC)</label><input type="file" name="file_materi" className="form-control form-control-custom" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" /><small className="text-muted">Kosongkan jika tidak ingin mengganti file</small></div></div>
+                           </div>
                        </div>
-                       <div className="modal-footer">
-                           <button type="button" className="btn-outline-custom" data-bs-dismiss="modal">Batal</button>
-                           <button type="submit" className="btn-primary-custom"><i className="bi bi-check-lg"></i> Simpan</button>
+                       <div className="modal-footer border-0 px-4 pb-4 pt-2">
+                           <button type="button" className="btn-outline-custom rounded-pill" data-bs-dismiss="modal">Batal</button>
+                           <button type="submit" className="btn-primary-custom rounded-pill"><i className="bi bi-check-lg"></i> Simpan</button>
                        </div>
                    </form>
               </div>

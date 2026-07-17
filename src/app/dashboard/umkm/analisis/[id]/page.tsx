@@ -3,6 +3,7 @@ import { jwtVerify } from "jose";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import { fetchScoringRules, matchRule } from "@/lib/scoring";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,13 +65,6 @@ export default async function AnalisisPage({ params }: { params: Promise<{ id: s
     redirect("/dashboard/umkm");
   }
 
-  // Fetch products
-  const { data: produk } = await supabaseAdmin
-    .from("produk")
-    .select("id")
-    .eq("umkm_id", umkmId);
-  const produkCount = produk?.length || 0;
-
   // Fetch latest monitoring
   const { data: monitoring } = await supabaseAdmin
     .from("monitoring")
@@ -82,111 +76,50 @@ export default async function AnalisisPage({ params }: { params: Promise<{ id: s
 
   const latestMonitoring = monitoring && monitoring.length > 0 ? monitoring[0] : null;
 
-  // Calculate breakdown parameters
+  // Monthly Reset Logic: Only count monitoring stats if they belong to the current month/year
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1; // 1-12
+  const currentYear = currentDate.getFullYear();
+  const isCurrentMonth = latestMonitoring && latestMonitoring.bulan === currentMonth && latestMonitoring.tahun === currentYear;
+
+  // 5. Fetch Scoring Rules
+  const rules = await fetchScoringRules();
+
+  // Helper to find description and max points
+  function getRuleInfo(value: number, catRules: any[] | undefined) {
+    if (!catRules) return { score: 0, desc: "Belum ada aturan", max: 0 };
+    let score = 0;
+    let desc = "Belum memenuhi kriteria";
+    let max = catRules[0]?.max_poin || 0; // Take max_poin from the first rule (or could find max among rules)
+
+    // Check if value exceeds highest rule
+    const sortedRules = [...catRules].sort((a, b) => Number(b.kondisi_min) - Number(a.kondisi_min));
+    const highestRule = sortedRules[0];
+    if (highestRule && highestRule.kondisi_max === null && value > Number(highestRule.kondisi_min) && Number(highestRule.kondisi_min) > 0) {
+      const scale = value / Number(highestRule.kondisi_min);
+      score = Math.floor(scale * Number(highestRule.poin));
+      desc = highestRule.label + " (Proporsional)";
+      return { score, desc, max };
+    }
+
+    for (const rule of catRules) {
+      const min = Number(rule.kondisi_min) || 0;
+      const rMax = rule.kondisi_max != null ? Number(rule.kondisi_max) : null;
+      if (value >= min && (rMax === null || value < rMax)) {
+        score = Number(rule.poin) || 0;
+        desc = rule.label;
+        break; // matched
+      }
+    }
+    return { score, desc, max };
+  }
+
+  const omzetValue = isCurrentMonth ? (latestMonitoring?.omzet || 0) : 0;
+  const omzetInfo = getRuleInfo(omzetValue, rules.omzet);
+
   const breakdown = {
-    omzet: { score: 0, max: 30, value: 0, desc: "Sangat Rendah (< Rp 2 Juta)" },
-    produk: { score: 0, max: 20, value: produkCount, desc: "Tidak ada produk" },
-    pekerja: { score: 0, max: 15, value: 0, desc: "Tidak ada data tenaga kerja" },
-    pelanggan: { score: 0, max: 15, value: 0, desc: "Tidak ada data pelanggan" },
-    legalitas: { score: 0, max: 20, value: 0, desc: "Tidak memiliki izin usaha lengkap" }
+    omzet: { score: omzetInfo.score, max: omzetInfo.max, value: omzetValue, desc: omzetInfo.desc }
   };
-
-  // 1. Omzet
-  if (latestMonitoring) {
-    const omzet = latestMonitoring.omzet || 0;
-    breakdown.omzet.value = omzet;
-    if (omzet >= 25000000) {
-      breakdown.omzet.score = 30;
-      breakdown.omzet.desc = "Sangat Tinggi (≥ Rp 25 Juta)";
-    } else if (omzet >= 15000000) {
-      breakdown.omzet.score = 25;
-      breakdown.omzet.desc = "Tinggi (≥ Rp 15 Juta)";
-    } else if (omzet >= 10000000) {
-      breakdown.omzet.score = 20;
-      breakdown.omzet.desc = "Cukup Tinggi (≥ Rp 10 Juta)";
-    } else if (omzet >= 5000000) {
-      breakdown.omzet.score = 15;
-      breakdown.omzet.desc = "Menengah (≥ Rp 5 Juta)";
-    } else if (omzet >= 2000000) {
-      breakdown.omzet.score = 10;
-      breakdown.omzet.desc = "Rendah (≥ Rp 2 Juta)";
-    } else {
-      breakdown.omzet.score = 5;
-      breakdown.omzet.desc = "Sangat Rendah (< Rp 2 Juta)";
-    }
-  }
-
-  // 2. Produk
-  if (produkCount >= 5) {
-    breakdown.produk.score = 20;
-    breakdown.produk.desc = "Sangat Baik (≥ 5 Produk)";
-  } else if (produkCount >= 3) {
-    breakdown.produk.score = 15;
-    breakdown.produk.desc = "Baik (≥ 3 Produk)";
-  } else if (produkCount >= 2) {
-    breakdown.produk.score = 10;
-    breakdown.produk.desc = "Cukup (≥ 2 Produk)";
-  } else if (produkCount >= 1) {
-    breakdown.produk.score = 5;
-    breakdown.produk.desc = "Kurang (1 Produk)";
-  }
-
-  // 3. Pekerja
-  if (latestMonitoring) {
-    const tk = latestMonitoring.jumlah_tenaga_kerja || 0;
-    breakdown.pekerja.value = tk;
-    if (tk >= 8) {
-      breakdown.pekerja.score = 15;
-      breakdown.pekerja.desc = "Sangat Baik (≥ 8 Pekerja)";
-    } else if (tk >= 5) {
-      breakdown.pekerja.score = 12;
-      breakdown.pekerja.desc = "Baik (≥ 5 Pekerja)";
-    } else if (tk >= 3) {
-      breakdown.pekerja.score = 8;
-      breakdown.pekerja.desc = "Cukup (≥ 3 Pekerja)";
-    } else if (tk >= 1) {
-      breakdown.pekerja.score = 5;
-      breakdown.pekerja.desc = "Kurang (1-2 Pekerja)";
-    }
-  }
-
-  // 4. Pelanggan
-  if (latestMonitoring) {
-    const pl = latestMonitoring.jumlah_pelanggan || 0;
-    breakdown.pelanggan.value = pl;
-    if (pl >= 200) {
-      breakdown.pelanggan.score = 15;
-      breakdown.pelanggan.desc = "Jangkauan Luas (≥ 200 Pelanggan)";
-    } else if (pl >= 100) {
-      breakdown.pelanggan.score = 12;
-      breakdown.pelanggan.desc = "Jangkauan Menengah (≥ 100 Pelanggan)";
-    } else if (pl >= 50) {
-      breakdown.pelanggan.score = 8;
-      breakdown.pelanggan.desc = "Jangkauan Cukup (≥ 50 Pelanggan)";
-    } else if (pl >= 20) {
-      breakdown.pelanggan.score = 5;
-      breakdown.pelanggan.desc = "Jangkauan Terbatas (≥ 20 Pelanggan)";
-    }
-  }
-
-  // 5. Legalitas
-  const legals: string[] = [];
-  if (umkm.nib) {
-    breakdown.legalitas.score += 7;
-    legals.push("NIB");
-  }
-  if (umkm.sertifikat_halal) {
-    breakdown.legalitas.score += 7;
-    legals.push("Halal");
-  }
-  if (umkm.sertifikat_pirt) {
-    breakdown.legalitas.score += 6;
-    legals.push("PIRT");
-  }
-  breakdown.legalitas.value = legals.length;
-  if (legals.length > 0) {
-    breakdown.legalitas.desc = "Memiliki izin: " + legals.join(", ");
-  }
 
   const totalScore = umkm.skor_usaha || 0;
   const statusClass = "badge-" + (umkm.status_usaha || "Go Modern").toLowerCase().replace(/\s+/g, "-");
@@ -224,7 +157,7 @@ export default async function AnalisisPage({ params }: { params: Promise<{ id: s
 
               <div className="d-flex justify-content-center align-items-center gap-2 mb-4">
                 <h2 className="mb-0 fw-bold text-primary">{totalScore}</h2>
-                <span className="text-muted">/ 100</span>
+                <span className="text-muted">pts</span>
               </div>
 
               <div className="mb-2">
@@ -270,14 +203,13 @@ export default async function AnalisisPage({ params }: { params: Promise<{ id: s
                       <i className="bi bi-cash-stack text-success me-2"></i> Omzet Bulanan
                     </h6>
                     <span className="fw-bold fs-5 text-success">
-                      {breakdown.omzet.score}{" "}
-                      <span className="fs-sm text-muted fw-normal">/ {breakdown.omzet.max} pts</span>
+                      {breakdown.omzet.score} <span className="fs-sm text-muted fw-normal">pts</span>
                     </span>
                   </div>
                   <div className="progress mb-2" style={{ height: "10px" }}>
                     <div
                       className="progress-bar bg-success"
-                      style={{ width: `${(breakdown.omzet.score / breakdown.omzet.max) * 100}%` }}
+                      style={{ width: breakdown.omzet.max > 0 ? `${(breakdown.omzet.score / breakdown.omzet.max) * 100}%` : (breakdown.omzet.score > 0 ? '100%' : '0%') }}
                     ></div>
                   </div>
                   <div className="d-flex justify-content-between text-muted fs-sm">
@@ -286,97 +218,6 @@ export default async function AnalisisPage({ params }: { params: Promise<{ id: s
                   </div>
                 </div>
 
-                {/* 2. Produk */}
-                <div className="list-group-item py-4 px-0">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h6 className="fw-bold mb-0">
-                      <i className="bi bi-box-seam text-info me-2"></i> Variasi Produk
-                    </h6>
-                    <span className="fw-bold fs-5 text-info">
-                      {breakdown.produk.score}{" "}
-                      <span className="fs-sm text-muted fw-normal">/ {breakdown.produk.max} pts</span>
-                    </span>
-                  </div>
-                  <div className="progress mb-2" style={{ height: "10px" }}>
-                    <div
-                      className="progress-bar bg-info"
-                      style={{ width: `${(breakdown.produk.score / breakdown.produk.max) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="d-flex justify-content-between text-muted fs-sm">
-                    <span>Status: {breakdown.produk.desc}</span>
-                    <span>Value: {breakdown.produk.value} produk</span>
-                  </div>
-                </div>
-
-                {/* 3. Pekerja */}
-                <div className="list-group-item py-4 px-0">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h6 className="fw-bold mb-0">
-                      <i className="bi bi-person-workspace text-warning me-2"></i> Serapan Tenaga Kerja
-                    </h6>
-                    <span className="fw-bold fs-5 text-warning">
-                      {breakdown.pekerja.score}{" "}
-                      <span className="fs-sm text-muted fw-normal">/ {breakdown.pekerja.max} pts</span>
-                    </span>
-                  </div>
-                  <div className="progress mb-2" style={{ height: "10px" }}>
-                    <div
-                      className="progress-bar bg-warning"
-                      style={{ width: `${(breakdown.pekerja.score / breakdown.pekerja.max) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="d-flex justify-content-between text-muted fs-sm">
-                    <span>Status: {breakdown.pekerja.desc}</span>
-                    <span>Value: {breakdown.pekerja.value} orang</span>
-                  </div>
-                </div>
-
-                {/* 4. Pelanggan */}
-                <div className="list-group-item py-4 px-0">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h6 className="fw-bold mb-0">
-                      <i className="bi bi-people text-primary me-2"></i> Jangkauan Pelanggan
-                    </h6>
-                    <span className="fw-bold fs-5 text-primary">
-                      {breakdown.pelanggan.score}{" "}
-                      <span className="fs-sm text-muted fw-normal">/ {breakdown.pelanggan.max} pts</span>
-                    </span>
-                  </div>
-                  <div className="progress mb-2" style={{ height: "10px" }}>
-                    <div
-                      className="progress-bar bg-primary"
-                      style={{ width: `${(breakdown.pelanggan.score / breakdown.pelanggan.max) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="d-flex justify-content-between text-muted fs-sm">
-                    <span>Status: {breakdown.pelanggan.desc}</span>
-                    <span>Value: {breakdown.pelanggan.value} pelanggan</span>
-                  </div>
-                </div>
-
-                {/* 5. Legalitas */}
-                <div className="list-group-item py-4 px-0 border-bottom-0">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h6 className="fw-bold mb-0">
-                      <i className="bi bi-shield-check text-danger me-2"></i> Legalitas Usaha
-                    </h6>
-                    <span className="fw-bold fs-5 text-danger">
-                      {breakdown.legalitas.score}{" "}
-                      <span className="fs-sm text-muted fw-normal">/ {breakdown.legalitas.max} pts</span>
-                    </span>
-                  </div>
-                  <div className="progress mb-2" style={{ height: "10px" }}>
-                    <div
-                      className="progress-bar bg-danger"
-                      style={{ width: `${(breakdown.legalitas.score / breakdown.legalitas.max) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="d-flex justify-content-between text-muted fs-sm">
-                    <span>Status: {breakdown.legalitas.desc}</span>
-                    <span>Value: {breakdown.legalitas.value} sertifikat</span>
-                  </div>
-                </div>
               </div>
             </div>
             {user.role !== "Mitra" && (

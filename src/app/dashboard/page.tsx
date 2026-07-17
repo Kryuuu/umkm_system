@@ -317,7 +317,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                               </div>
                               <div>
                                   <div className="fs-xs fw-bold text-muted tracking-wide mb-1">SKOR USAHA</div>
-                                  <h4 className="fw-bold text-primary mb-0">{Math.round(activeUmkmData?.skor_usaha || 0)} <span className="fs-xs fw-normal text-muted">/ 100</span></h4>
+                                  <h4 className="fw-bold text-primary mb-0">{Math.round(activeUmkmData?.skor_usaha || 0)} <span className="fs-xs fw-normal text-muted">pts</span></h4>
                               </div>
                           </div>
                       </div>

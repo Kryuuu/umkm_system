@@ -74,7 +74,7 @@ export default function LeaderboardClient({ leaderboard, user }: { leaderboard: 
 
   return (
     <>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
           <div>
               <h5 className="fw-bold mb-1">Leaderboard UMKM</h5>
               <p className="text-muted fs-sm mb-0">Ranking UMKM berdasarkan skor usaha</p>

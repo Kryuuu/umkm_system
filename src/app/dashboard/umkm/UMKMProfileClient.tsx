@@ -317,7 +317,7 @@ export default function UMKMProfileClient({
                     <h2 className="mb-0 fw-bold text-primary" style={{ fontSize: "3rem" }}>
                       {Math.round(umkm.skor_usaha || 0)}
                     </h2>
-                    <span className="text-muted fw-bold">/ 100</span>
+                    <span className="text-muted fw-bold">pts</span>
                   </div>
 
                   <div className="mb-2">
